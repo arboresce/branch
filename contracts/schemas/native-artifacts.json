@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "uniffi_version": {
+      "const": "0.32.0"
+    },
+    "library": {
+      "const": "branch_runtime_ffi"
+    },
+    "profile": {
+      "const": "release"
+    },
+    "ios": {
+      "type": "object",
+      "properties": {
+        "minimum_os": {
+          "const": "18.0"
+        },
+        "targets": {
+          "const": [
+            "aarch64-apple-ios",
+            "aarch64-apple-ios-sim"
+          ]
+        }
+      },
+      "required": [
+        "minimum_os",
+        "targets"
+      ],
+      "additionalProperties": false
+    },
+    "android": {
+      "type": "object",
+      "properties": {
+        "minimum_api": {
+          "const": 28
+        },
+        "compile_sdk": {
+          "const": 36
+        },
+        "target_sdk": {
+          "const": 36
+        },
+        "ndk": {
+          "const": "29.0.14206865"
+        },
+        "abis": {
+          "const": [
+            "arm64-v8a",
+            "x86_64"
+          ]
+        },
+        "targets": {
+          "const": [
+            "aarch64-linux-android",
+            "x86_64-linux-android"
+          ]
+        }
+      },
+      "required": [
+        "minimum_api",
+        "compile_sdk",
+        "target_sdk",
+        "ndk",
+        "abis",
+        "targets"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "uniffi_version",
+    "library",
+    "profile",
+    "ios",
+    "android"
+  ],
+  "additionalProperties": false
+}

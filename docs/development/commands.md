@@ -1,0 +1,34 @@
+# Commands
+
+All commands are explicit Make targets routed through scripts/commands.sh. No
+caller TARGET selector is supported. Commands run from the Branch project directory
+containing this Makefile.
+
+| Command | Behavior |
+| --- | --- |
+| make help | List supported developer commands |
+| make doctor | Inspect Rust, uv, Xcode, swift-format, XcodeGen and JDK availability |
+| make setup-rust | Fetch locked Rust dependencies |
+| make check-rust | Check formatting, compilation and Clippy |
+| make test-rust | Run Rust unit and documentation tests |
+| make verify-rust | Run Rust checks, then tests |
+| make setup-android / setup-ios | Prepare locked Python tools, platform Rust targets, settings, bindings and debug app |
+| make build-android / build-ios | Verify settings, build/reuse verified native artifacts and build the debug app |
+| make dev-android / dev-ios | Build, install and launch, retaining foreground console attachment |
+| make check-android / check-ios | Check Rust, Python tests/style, Kotlin style, settings and native artifact integrity; Android also runs Android Lint; iOS checks Swift style. No repairs |
+| make test-android / test-ios | Build, boot/select a device and execute native platform tests |
+| make verify-android / verify-ios | Check first, then run platform tests |
+| make setup / check / test / verify | Apply the corresponding action to Android, then iOS |
+
+Setup may install missing Android packages through sdkmanager; accept its license
+prompts as the developer. Build/check never rewrite contracts or dependency locks.
+`check-native-android` and `check-native-ios` are internal Bash dispatcher entries
+used by build integration, not extra Make targets. The internal `branch-native lint`
+action runs pinned Gradle ktlint checks for handwritten Kotlin and build scripts;
+on iOS it also runs Xcode swift-format with the committed `.swift-format` settings.
+Generated bindings are excluded from style checks.
+
+Dev is an interactive foreground command, not a background service. Ctrl-C closes
+its console and shuts down only a simulator/emulator booted by that invocation.
+An explicitly selected, already-running device remains running. There is no hot
+reload: rebuild/restart for source changes. No network services are started.

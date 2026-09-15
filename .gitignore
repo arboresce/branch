@@ -1,0 +1,14 @@
+.build/
+.env.local
+.gradle/
+.kotlin/
+local.properties
+**/build/
+target/
+.DS_Store
+*.xcuserstate
+**/xcuserdata/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/

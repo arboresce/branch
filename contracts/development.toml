@@ -1,0 +1,7 @@
+schema_version = 1
+local_file = ".env.local"
+ios_device_type = "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro"
+ios_runtime = "com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+ios_simulator_name = "Branch Development"
+android_avd = "branch_development"
+android_image = "system-images;android-36;google_apis;arm64-v8a"

@@ -1,0 +1,7 @@
+schema_version = 1
+display_name = "branch"
+store_name = "Branch by Arboresce"
+bundle_id = "ai.arboresce.branch"
+version = "0.1.0"
+version_code = 1
+configuration = "preview"

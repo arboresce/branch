@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "display_name": {
+      "const": "branch"
+    },
+    "bundle_id": {
+      "const": "ai.arboresce.branch"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "version_code": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "configuration": {
+      "const": "preview"
+    },
+    "store_name": {
+      "const": "Branch by Arboresce"
+    }
+  },
+  "required": [
+    "schema_version",
+    "display_name",
+    "bundle_id",
+    "version",
+    "version_code",
+    "configuration",
+    "store_name"
+  ],
+  "additionalProperties": false
+}

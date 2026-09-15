@@ -1,0 +1,29 @@
+# Native artifact contract
+
+contracts/native-artifacts.toml owns platform targets, OS floors, NDK and UniFFI pins.
+Application identity comes from contracts/application.toml. Producers must validate
+contracts before building and reject stale settings without automatic repair in check.
+
+Native builds produce source-addressed cohorts containing bindings, platform libraries
+and an integrity manifest. Apple uses device/simulator slices; Android uses ABI-specific
+JNI libraries. Source, toolchain, target and configuration identities must participate
+in the cohort identity. Consumers verify the manifest before compilation.
+
+Generated bindings and libraries are build outputs, never handwritten source. Public
+source must not contain developer paths, runtime credentials or opaque local state.
+
+The current producer hashes Cargo inputs, Rust sources, concrete contracts, schemas,
+bindgen and producer sources, the Python lockfile, compiler identity and platform
+SDK identity. A manifest verifies every output byte; a source change during generation
+aborts installation. Writes stage beside the final cohort and rename only after
+verification. Existing mismatched cohorts are never silently repaired.
+
+Gradle versions live in app/gradle/libs.versions.toml and the wrapper properties. Resolution
+locks and verification-metadata.xml are committed. contracts/native-settings.properties
+is a deterministic projection; Python checks compare its exact bytes. Android's
+preBuild checks the selected native cohort. iOS orchestration checks it before Xcode.
+
+The Python producer uses only the Python standard library plus pinned jsonschema;
+its tests exercise contract rejection, deterministic settings and tampered artifacts.
+A Python environment may be selected with UV_PROJECT_ENVIRONMENT. This is a tooling
+location, not a runtime value or bundled application configuration.

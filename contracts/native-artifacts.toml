@@ -1,0 +1,14 @@
+schema_version = 1
+uniffi_version = "0.32.0"
+library = "branch_runtime_ffi"
+profile = "release"
+[ios]
+minimum_os = "18.0"
+targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim"]
+[android]
+minimum_api = 28
+compile_sdk = 36
+target_sdk = 36
+ndk = "29.0.14206865"
+abis = ["arm64-v8a", "x86_64"]
+targets = ["aarch64-linux-android", "x86_64-linux-android"]

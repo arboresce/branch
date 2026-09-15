@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "local_file": {
+      "const": ".env.local"
+    },
+    "ios_device_type": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9 .;_-]+$"
+    },
+    "ios_runtime": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9 .;_-]+$"
+    },
+    "ios_simulator_name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9 .;_-]+$"
+    },
+    "android_avd": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9 .;_-]+$"
+    },
+    "android_image": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9 .;_-]+$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "local_file",
+    "ios_device_type",
+    "ios_runtime",
+    "ios_simulator_name",
+    "android_avd",
+    "android_image"
+  ],
+  "additionalProperties": false
+}

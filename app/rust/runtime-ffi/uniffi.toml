@@ -1,0 +1,7 @@
+[bindings.kotlin]
+package_name = "ai.arboresce.branch.bindings"
+cdylib_name = "branch_runtime_ffi"
+android = true
+[bindings.swift]
+module_name = "BranchRuntime"
+ffi_module_name = "BranchRuntimeFFI"

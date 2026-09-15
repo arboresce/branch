@@ -1,0 +1,73 @@
+name: Branch
+options:
+  deploymentTarget:
+    iOS: "${BRANCH_IOS_MINIMUM_OS}"
+settings:
+  base:
+    ARCHS: arm64
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGNING_ALLOWED: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    MARKETING_VERSION: "${BRANCH_APP_VERSION}"
+    CURRENT_PROJECT_VERSION: "${BRANCH_BUILD_NUMBER}"
+targets:
+  Branch:
+    type: application
+    platform: iOS
+    sources:
+      - path: ${BRANCH_ROOT}/app/ios/App
+      - path: ${BRANCH_ROOT}/app/ios/Runtime
+      - path: ${BRANCH_ROOT}/app/ios/Resources/Assets.xcassets
+      - path: ${BRANCH_NATIVE}/bindings/BranchRuntime.swift
+    info:
+      path: Branch-Info.plist
+      properties:
+        CADisableMinimumFrameDurationOnPhone: true
+    dependencies:
+      - framework: ${BRANCH_NATIVE}/BranchRuntimeFFI.xcframework
+        embed: false
+      - framework: ${BRANCH_UI}
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ${BRANCH_BUNDLE_ID}
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "${BRANCH_DISPLAY_NAME}"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        OTHER_LDFLAGS: "$(inherited) -lc++"
+  BranchTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ${BRANCH_ROOT}/app/ios/Tests
+    dependencies:
+      - target: Branch
+    settings:
+      base:
+        FRAMEWORK_SEARCH_PATHS: ["$(inherited)", "${BRANCH_UI}/.."]
+        PRODUCT_BUNDLE_IDENTIFIER: ai.arboresce.branch.tests
+        GENERATE_INFOPLIST_FILE: YES
+  BranchUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ${BRANCH_ROOT}/app/ios/UITests
+    dependencies:
+      - target: Branch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.arboresce.branch.uitests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Branch:
+    build:
+      targets:
+        Branch: all
+    test:
+      targets:
+        - BranchTests
+        - BranchUITests
