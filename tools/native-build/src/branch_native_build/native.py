@@ -108,13 +108,16 @@ def location(platform: str, data: dict | None = None) -> Path:
 def verify(path: Path, expected: dict) -> None:
     if path.is_symlink() or not path.is_dir():
         raise ValueError("Native cohort missing or unsafe; run platform build")
-    files = [p for p in path.rglob("*") if p.is_file()]
     if any(p.is_symlink() for p in path.rglob("*")):
         raise ValueError("Native cohort contains a symlink")
-    manifest = json.loads((path / "manifest.json").read_text())
-    actual = {
-        str(p.relative_to(path)): digest(p.read_bytes()) for p in files if p.name != "manifest.json"
-    }
+    metadata = path / "manifest.json"
+    if not metadata.is_file():
+        raise ValueError("Native cohort manifest is missing")
+    manifest = json.loads(metadata.read_text())
+    if manifest.get("identity", {}).get("schema_version") != expected.get("schema_version"):
+        raise ValueError("Native cohort schema is incompatible; rebuild the platform cohort")
+    files = [p for p in path.rglob("*") if p.is_file()]
+    actual = {str(p.relative_to(path)): digest(p.read_bytes()) for p in files if p != metadata}
     if manifest != {"identity": expected, "outputs": actual} or not actual:
         raise ValueError("Native cohort integrity mismatch")
 
