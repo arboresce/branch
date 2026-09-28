@@ -20,7 +20,11 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
+            implementation(compose.components.resources)
         }
-        commonTest.dependencies { implementation(kotlin("test")) }
     }
+}
+
+compose.resources {
+    packageOfResClass = "ai.arboresce.branch.ui.resources"
 }

@@ -1,0 +1,4 @@
+<resources>
+    <string name="diagnostic_loading">Loading runtime…</string>
+    <string name="diagnostic_retry">Retry</string>
+</resources>

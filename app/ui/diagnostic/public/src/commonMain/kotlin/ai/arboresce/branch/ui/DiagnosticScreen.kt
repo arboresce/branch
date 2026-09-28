@@ -1,5 +1,8 @@
 package ai.arboresce.branch.ui
 
+import ai.arboresce.branch.ui.resources.Res
+import ai.arboresce.branch.ui.resources.diagnostic_loading
+import ai.arboresce.branch.ui.resources.diagnostic_retry
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -26,6 +29,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun DiagnosticScreen(
@@ -44,7 +48,7 @@ fun DiagnosticScreen(
         when (phase) {
             DiagnosticPhase.Loading ->
                 BasicText(
-                    text = "Loading runtime…",
+                    text = stringResource(Res.string.diagnostic_loading),
                     modifier = Modifier.fillMaxSize().padding(16.dp).testTag("runtime-loading"),
                     style = style,
                 )
@@ -58,7 +62,7 @@ fun DiagnosticScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     BasicText(
-                        text = "Retry",
+                        text = stringResource(Res.string.diagnostic_retry),
                         modifier =
                             Modifier
                                 .testTag("runtime-retry")
