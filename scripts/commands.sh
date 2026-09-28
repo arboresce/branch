@@ -7,12 +7,20 @@ cd "$(dirname "$0")/.."
 }
 export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-$PWD/.build/python}"
 asset() { uv run --project tools/native-build --locked --no-sync "$@"; }
+require_python_environment() {
+    if ! uv run --project tools/native-build --locked --no-sync python -c 'import jsonschema, pytest' >/dev/null 2>&1; then
+        echo 'The pinned Python tool environment is not prepared or is stale.' >&2
+        echo 'Run make setup-android or make setup-ios, then retry the check.' >&2
+        exit 1
+    fi
+}
 check_rust() {
     cargo fmt --all --check
     cargo check --workspace --locked
     cargo clippy --workspace --all-targets --locked -- -D warnings
 }
 check_tools() {
+    require_python_environment
     asset branch-native config-check
     asset branch-native contract-check
     asset ruff check tools/native-build

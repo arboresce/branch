@@ -34,7 +34,10 @@ make dev-ios
 ```
 
 Setup is required before check on a fresh checkout: check rejects missing artifacts
-and does not repair them. Gradle downloads its checksum-pinned distribution and
+and does not repair them. Platform setup also prepares the locked Python tool
+environment with `uv sync --project tools/native-build --locked`; checks run it with
+`--no-sync` and refuse to repair a missing or stale environment, printing the
+required setup command instead. Gradle downloads its checksum-pinned distribution and
 verified dependencies. Native outputs stay outside source under the selected build
 directory; never copy arbitrary generated bindings or libraries into app source.
 
