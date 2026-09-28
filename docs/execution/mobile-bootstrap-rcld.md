@@ -5,6 +5,13 @@
 Independent Rust core/runtime/FFI, a shared Compose diagnostic screen and Android/iOS
 hosts. Only preview JSON is displayed. Native targets and metadata are contract-owned.
 
+Checkpoints 1-4 below are historical bootstrap receipts from the pre-adoption
+history. Their dates, environment details and revision identifiers (including the
+checkpoint 4 clone of `0da95a6`) describe the bootstrap repository, not the current
+adopted checkout; `0da95a6` is not present in this repository's history. They are
+retained as evidence and are not re-presented as fresh. The current baseline is
+recorded at the end of this document.
+
 ## Checkpoint 1 — Rust foundation
 
 Implemented state, snapshot lifecycle, compiler metadata, UniFFI facade and repository
@@ -36,6 +43,28 @@ The iOS launch test caught a missing Compose frame-duration plist property; the
 project now explicitly generates that boolean property. Physical Android/iOS
 installation, iOS signing, release distribution and remote consumer availability
 are not qualified.
+
+## Baseline record — 2026-09-28
+
+The adopted checkout was inspected at initial commit `68338c0` before UI Foundation
+execution. Recorded environment: rustc/cargo 1.98.0, uv 0.12.19, Python 3.14.7,
+Xcode 26.6 (17F113), iOS simulator SDK 26.5, JDK 21 (Temurin), Android SDK
+platform android-36, build-tools 36.0.0 and NDK 29.0.14206865 under the selected
+external build root.
+
+Baseline commands (all exit zero):
+
+- `make verify-rust` — cargo fmt/clippy/check plus `cargo test --workspace --locked`:
+  five unit tests passed (branch-domain 1, branch-runtime 3, branch-runtime-ffi 1),
+  zero failures.
+- `branch-native config-check` — deterministic settings projection matched.
+- Python package tests — five tests passed at baseline; the UI Foundation inventory
+  work adds contract validation cases recorded in the BDS-00 execution ledger.
+
+Generated native cohorts for both platforms were already present under the selected
+build root from the earlier bootstrap; they are local build outputs, not committed
+source. No whole-checkout qualification is claimed here, and no historical receipt
+is relabelled as fresh.
 
 ## Checkpoint 4 — Independent local checkout
 
