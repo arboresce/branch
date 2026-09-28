@@ -1,0 +1,1847 @@
+{
+  "schema_version": 1,
+  "authority": "../docs/spec/ui-foundation.md",
+  "qualification": "Required target inventory; presence does not imply implementation or passing tests.",
+  "components": [
+    {
+      "id": "C001",
+      "name": "AppTheme",
+      "module": ":ui:design-system",
+      "contract": "Resolve typed appearance and metrics for descendants with reactive system mode and explicit overrides.",
+      "verification": "Change system mode, apply override, corrupt saved preference and verify mode/contrast precedence.",
+      "owner_slice": "BDS-03.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C002",
+      "name": "AppSurface",
+      "module": ":ui:design-system",
+      "contract": "Apply semantic background, content color, shape and optional interaction without owning data.",
+      "verification": "Verify inherited content color, clipping, enabled interaction and opaque readability.",
+      "owner_slice": "BDS-04.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C003",
+      "name": "AppCard",
+      "module": ":ui:design-system",
+      "contract": "Group caller content with semantic container variants and optional action.",
+      "verification": "Exercise long content, selectable versus passive semantics and disabled click suppression.",
+      "owner_slice": "BDS-04.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C004",
+      "name": "AppDivider",
+      "module": ":ui:design-system",
+      "contract": "Separate content with tokenized thickness and orientation.",
+      "verification": "Check bounds, contrast variants and absence of redundant accessibility announcements.",
+      "owner_slice": "BDS-04.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C005",
+      "name": "AppScrim",
+      "module": ":ui:design-system",
+      "contract": "Dim underlying content and expose only the caller-approved dismissal action.",
+      "verification": "Verify layering, hit interception, disabled dismissal and accessibility focus exclusion.",
+      "owner_slice": "BDS-04.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C006",
+      "name": "AppText",
+      "module": ":ui:design-system",
+      "contract": "Render shared typography with caller text, overflow and semantic configuration.",
+      "verification": "Check font scale, multiline overflow, RTL and exact bundled font selection.",
+      "owner_slice": "BDS-04.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C007",
+      "name": "AppLabel",
+      "module": ":ui:design-system",
+      "contract": "Provide reusable control labels with explicit association and emphasis.",
+      "verification": "Verify required/disabled indication and one associated accessible label.",
+      "owner_slice": "BDS-04.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C008",
+      "name": "AppIcon",
+      "module": ":ui:design-system",
+      "contract": "Render shared vector assets with explicit meaningful or decorative semantics.",
+      "verification": "Test tint, sizing, directional mirroring and omitted decorative descriptions.",
+      "owner_slice": "BDS-04.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C009",
+      "name": "AppImage",
+      "module": ":ui:design-system",
+      "contract": "Display an already available image with controlled size, scale and description.",
+      "verification": "Test aspect ratio, clipping, missing content and meaningful versus decorative semantics.",
+      "owner_slice": "BDS-04.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C010",
+      "name": "AppAvatar",
+      "module": ":ui:design-system",
+      "contract": "Present person-neutral image or initials fallback in a consistent shape.",
+      "verification": "Test missing image, empty/long initials, clipping and readable fallback.",
+      "owner_slice": "BDS-04.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C011",
+      "name": "AppBadge",
+      "module": ":ui:design-system",
+      "contract": "Show bounded count or status without replacing the associated control label.",
+      "verification": "Test zero/overflow counts, text scaling and nonduplicated announcements.",
+      "owner_slice": "BDS-04.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C012",
+      "name": "AppTopAppBar",
+      "module": ":ui:design-system",
+      "contract": "Arrange title and caller-owned leading/trailing actions with shared appearance.",
+      "verification": "Test long title, target sizes, insets and action reading order.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C013",
+      "name": "AppToolbar",
+      "module": ":ui:design-system",
+      "contract": "Arrange contextual caller actions without owning their workflow.",
+      "verification": "Test overflow, disabled actions, RTL order and keyboard focus.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C014",
+      "name": "AppBottomActionBar",
+      "module": ":ui:design-system",
+      "contract": "Lay out bottom actions above owned safe-area/keyboard bounds.",
+      "verification": "Test keyboard appearance, long labels and one application of bottom insets.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C015",
+      "name": "AppTabBar",
+      "module": ":ui:design-system",
+      "contract": "Expose top-level selection through values and callbacks.",
+      "verification": "Test selection semantics, repeated selection and no private navigation stack.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C016",
+      "name": "AppTabBarItem",
+      "module": ":ui:design-system",
+      "contract": "Render an accessible destination item with icon, label and optional badge.",
+      "verification": "Test selected/disabled state, long label and minimum interaction target.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C017",
+      "name": "AppTabRow",
+      "module": ":ui:design-system",
+      "contract": "Lay out related content tabs with controlled selection and scrolling.",
+      "verification": "Test overflowing tabs, focus visibility and RTL scroll behavior.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C018",
+      "name": "AppTab",
+      "module": ":ui:design-system",
+      "contract": "Expose one related-content tab action and selected state.",
+      "verification": "Test disabled activation, indicator placement and accessible selected role.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C019",
+      "name": "AppNavigationRail",
+      "module": ":ui:design-system",
+      "contract": "Present width-adaptive primary destinations using shared selection rules.",
+      "verification": "Test same destination state after width change and keyboard traversal.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C020",
+      "name": "AppBackButton",
+      "module": ":ui:design-system",
+      "contract": "Emit a history-back request with shared directional icon and label.",
+      "verification": "Test RTL mirroring, disabled root behavior and exactly one callback.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C021",
+      "name": "AppCloseButton",
+      "module": ":ui:design-system",
+      "contract": "Emit presentation dismissal independently of navigation-back semantics.",
+      "verification": "Test accessible close label, hit target and caller-controlled dismissal.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C022",
+      "name": "AppPageIndicator",
+      "module": ":ui:design-system",
+      "contract": "Expose current page and optional page selection with bounded counts.",
+      "verification": "Test empty/single/multiple pages, invalid index protection and current-page announcement.",
+      "owner_slice": "BDS-05.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C023",
+      "name": "AppListItem",
+      "module": ":ui:design-system",
+      "contract": "Arrange caller text, leading/trailing slots and optional action in a stable row.",
+      "verification": "Test large text, multiple lines, row target and passive versus interactive semantics.",
+      "owner_slice": "BDS-05.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C024",
+      "name": "AppNavigationListItem",
+      "module": ":ui:design-system",
+      "contract": "Expose a row action that requests navigation without owning a route.",
+      "verification": "Test disclosure direction, action count and enabled/disabled focus behavior.",
+      "owner_slice": "BDS-05.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C025",
+      "name": "AppSection",
+      "module": ":ui:design-system",
+      "contract": "Group related content with caller header/footer and tokenized gaps.",
+      "verification": "Test nesting, long content and logical semantic reading order.",
+      "owner_slice": "BDS-05.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C026",
+      "name": "AppSectionHeader",
+      "module": ":ui:design-system",
+      "contract": "Render a section heading with optional action slot.",
+      "verification": "Test heading semantics, large type and distinct action label.",
+      "owner_slice": "BDS-05.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C027",
+      "name": "AppSectionFooter",
+      "module": ":ui:design-system",
+      "contract": "Render explanatory section content with shared supporting typography.",
+      "verification": "Test wrapping, contrast and reading order after section content.",
+      "owner_slice": "BDS-05.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C028",
+      "name": "AppDisclosureGroup",
+      "module": ":ui:design-system",
+      "contract": "Expose controlled expansion with accessible content and indicator.",
+      "verification": "Test expanded state, focus after collapse and nested actionable children.",
+      "owner_slice": "BDS-08.05",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C029",
+      "name": "AppButton",
+      "module": ":ui:design-system",
+      "contract": "Expose semantic emphasis/role/size plus enabled and busy behavior.",
+      "verification": "Test loading suppresses duplicate actions, destructive style and minimum target at large text.",
+      "owner_slice": "BDS-04.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C030",
+      "name": "AppIconButton",
+      "module": ":ui:design-system",
+      "contract": "Expose one labelled action through an icon-only visual.",
+      "verification": "Test required accessible label, disabled/loading behavior and padded target.",
+      "owner_slice": "BDS-04.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C031",
+      "name": "AppIconToggleButton",
+      "module": ":ui:design-system",
+      "contract": "Expose selected button state separately from switch semantics.",
+      "verification": "Test selected announcement, exactly one change callback and disabled interaction.",
+      "owner_slice": "BDS-04.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C032",
+      "name": "AppFloatingActionButton",
+      "module": ":ui:design-system",
+      "contract": "Present a floating action with shared placement-independent styling.",
+      "verification": "Test busy/disabled actions, overlap bounds and focus visibility.",
+      "owner_slice": "BDS-04.05",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C033",
+      "name": "AppExtendedFloatingActionButton",
+      "module": ":ui:design-system",
+      "contract": "Present a floating icon-and-label action that grows for content.",
+      "verification": "Test long labels, enlarged text, icon description policy and target size.",
+      "owner_slice": "BDS-04.05",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C034",
+      "name": "AppSwitch",
+      "module": ":ui:design-system",
+      "contract": "Expose a caller-owned boolean setting using switch semantics.",
+      "verification": "Test on/off value, disabled state, label association and callback count.",
+      "owner_slice": "BDS-08.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C035",
+      "name": "AppCheckbox",
+      "module": ":ui:design-system",
+      "contract": "Expose caller-owned checked state and associated label.",
+      "verification": "Test checked/unchecked, non-gesture activation and disabled changes.",
+      "owner_slice": "BDS-08.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C036",
+      "name": "AppTriStateCheckbox",
+      "module": ":ui:design-system",
+      "contract": "Expose checked, unchecked and mixed states explicitly.",
+      "verification": "Test mixed announcement and caller-defined transition without implicit domain policy.",
+      "owner_slice": "BDS-08.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C037",
+      "name": "AppRadioButton",
+      "module": ":ui:design-system",
+      "contract": "Expose one mutually exclusive option with caller-owned selection.",
+      "verification": "Test selected role, label, disabled state and action count.",
+      "owner_slice": "BDS-08.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C038",
+      "name": "AppRadioGroup",
+      "module": ":ui:design-system",
+      "contract": "Coordinate accessible grouping while selection remains caller-owned.",
+      "verification": "Test single selection, keyboard movement and disabled option skipping.",
+      "owner_slice": "BDS-08.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C039",
+      "name": "AppSegmentedControl",
+      "module": ":ui:design-system",
+      "contract": "Group related choices with controlled selection and shared geometry.",
+      "verification": "Test overflow/long text, one selected choice and RTL layout.",
+      "owner_slice": "BDS-08.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C040",
+      "name": "AppSegmentedControlItem",
+      "module": ":ui:design-system",
+      "contract": "Expose one related-choice action and selected state.",
+      "verification": "Test focus/selected distinction, disabled activation and label scaling.",
+      "owner_slice": "BDS-08.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C041",
+      "name": "AppFilterChip",
+      "module": ":ui:design-system",
+      "contract": "Expose filter selection through caller-owned state.",
+      "verification": "Test toggle semantics, disabled selection and long label target.",
+      "owner_slice": "BDS-08.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C042",
+      "name": "AppInputChip",
+      "module": ":ui:design-system",
+      "contract": "Represent selected input with optional distinct removal action.",
+      "verification": "Test removal does not also toggle, focus transfer and accessible removal label.",
+      "owner_slice": "BDS-08.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C043",
+      "name": "AppAssistChip",
+      "module": ":ui:design-system",
+      "contract": "Expose a contextual action without invented selection state.",
+      "verification": "Test action semantics, disabled/busy behavior and icon/label ordering.",
+      "owner_slice": "BDS-08.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C044",
+      "name": "AppSuggestionChip",
+      "module": ":ui:design-system",
+      "contract": "Expose a suggested action or value through a callback.",
+      "verification": "Test long text, callback identity and absence of false selected semantics.",
+      "owner_slice": "BDS-08.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C045",
+      "name": "AppSlider",
+      "module": ":ui:design-system",
+      "contract": "Expose bounded caller-owned scalar values with accessible adjustment.",
+      "verification": "Test clamping, increments, RTL mapping and non-drag adjustment.",
+      "owner_slice": "BDS-08.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C046",
+      "name": "AppRangeSlider",
+      "module": ":ui:design-system",
+      "contract": "Expose ordered bounds with individually identifiable handles.",
+      "verification": "Test crossing policy, constraints, handle labels and accessible adjustment.",
+      "owner_slice": "BDS-08.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C047",
+      "name": "AppStepper",
+      "module": ":ui:design-system",
+      "contract": "Expose bounded increment/decrement with discrete step policy.",
+      "verification": "Test extrema disablement, repeated presses and one value change per action.",
+      "owner_slice": "BDS-08.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C048",
+      "name": "AppTextField",
+      "module": ":ui:design-system",
+      "contract": "Wrap single-line framework editing with labels, validation and IME configuration.",
+      "verification": "Test composing range, paste/selection, submit, read-only/disabled distinction and error association.",
+      "owner_slice": "BDS-07.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C049",
+      "name": "AppPasswordField",
+      "module": ":ui:design-system",
+      "contract": "Preserve secure editing and caller-controlled reveal behavior.",
+      "verification": "Test masking/reveal semantics, selection and exclusion from restoration/captures.",
+      "owner_slice": "BDS-07.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C050",
+      "name": "AppTextArea",
+      "module": ":ui:design-system",
+      "contract": "Wrap multiline editing that can grow and cooperate with scrolling.",
+      "verification": "Test newline/IME policy, long text, cursor visibility and keyboard avoidance.",
+      "owner_slice": "BDS-07.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C051",
+      "name": "AppSearchField",
+      "module": ":ui:design-system",
+      "contract": "Expose editing, clear and search submission as distinct caller actions.",
+      "verification": "Test clear versus submit, composing text, cancellation and accessible labels.",
+      "owner_slice": "BDS-07.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C052",
+      "name": "AppSelectField",
+      "module": ":ui:design-system",
+      "contract": "Display a controlled selection and request a shared selection presentation.",
+      "verification": "Test placeholder, invalid/disabled states and cancel without changing value.",
+      "owner_slice": "BDS-07.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C053",
+      "name": "AppCodeField",
+      "module": ":ui:design-system",
+      "contract": "Expose constrained nonpersistent code editing with framework input behavior.",
+      "verification": "Test full-code paste, backspace, focus movement and no disk restoration.",
+      "owner_slice": "BDS-07.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C054",
+      "name": "AppDatePicker",
+      "module": ":ui:design-system",
+      "contract": "Expose locale-aware constrained date-only selection with draft confirmation.",
+      "verification": "Test leap day, year/month bounds, RTL calendar and cancel without commit.",
+      "owner_slice": "BDS-08.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C055",
+      "name": "AppDateRangePicker",
+      "module": ":ui:design-system",
+      "contract": "Expose a constrained date-only interval with explicit incomplete draft state.",
+      "verification": "Test reversed/partial ranges, bounds, confirmation and cancellation.",
+      "owner_slice": "BDS-08.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C056",
+      "name": "AppTimePicker",
+      "module": ":ui:design-system",
+      "contract": "Expose constrained local time selection with explicit confirmation.",
+      "verification": "Test 12/24-hour presentation, range constraints, locale and cancellation.",
+      "owner_slice": "BDS-08.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C057",
+      "name": "AppFormField",
+      "module": ":ui:design-system",
+      "contract": "Associate a caller editor with label, required, support and validation slots.",
+      "verification": "Test semantic association, layout growth and focus/error navigation.",
+      "owner_slice": "BDS-07.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C058",
+      "name": "AppFieldLabel",
+      "module": ":ui:design-system",
+      "contract": "Render required and enabled field-label states without owning input.",
+      "verification": "Test required announcement, wrapping and disabled readability.",
+      "owner_slice": "BDS-07.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C059",
+      "name": "AppSupportingText",
+      "module": ":ui:design-system",
+      "contract": "Render help content consistently with its associated control.",
+      "verification": "Test multiline text and semantic ordering without duplicate announcements.",
+      "owner_slice": "BDS-07.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C060",
+      "name": "AppValidationMessage",
+      "module": ":ui:design-system",
+      "contract": "Present accessible sanitized validation feedback for a field.",
+      "verification": "Test message changes, error association, long strings and actionable correction.",
+      "owner_slice": "BDS-07.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C061",
+      "name": "AppDropdownMenu",
+      "module": ":ui:design-system",
+      "contract": "Present anchored caller-controlled menu content with focus management.",
+      "verification": "Test screen-edge bounds, outside/back dismissal, RTL anchoring and focus return.",
+      "owner_slice": "BDS-09.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C062",
+      "name": "AppDropdownMenuItem",
+      "module": ":ui:design-system",
+      "contract": "Expose one menu action with optional icon and checked state.",
+      "verification": "Test disabled action, checked announcement and caller-owned dismissal.",
+      "owner_slice": "BDS-09.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C063",
+      "name": "AppContextMenu",
+      "module": ":ui:design-system",
+      "contract": "Expose contextual actions through pointer and accessible alternatives.",
+      "verification": "Test long press and non-gesture entry, selection preservation and cancellation.",
+      "owner_slice": "BDS-09.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C064",
+      "name": "AppPopover",
+      "module": ":ui:design-system",
+      "contract": "Present anchored nonmodal content with controlled dismissal and bounds.",
+      "verification": "Test anchor movement, clipping, keyboard/inset changes and focus policy.",
+      "owner_slice": "BDS-09.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C065",
+      "name": "AppTooltip",
+      "module": ":ui:design-system",
+      "contract": "Provide supplemental help without replacing the accessible control label.",
+      "verification": "Test focus/hover timing, dismissal and no blocking of primary actions.",
+      "owner_slice": "BDS-09.03",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C066",
+      "name": "AppDialog",
+      "module": ":ui:design-system",
+      "contract": "Host caller dialog content with controlled modality and dismissal.",
+      "verification": "Test focus confinement/return, outside/back policy and large content.",
+      "owner_slice": "BDS-07.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C067",
+      "name": "AppAlertDialog",
+      "module": ":ui:design-system",
+      "contract": "Present an alert and caller-defined actions using shared styling.",
+      "verification": "Test action order, long message and disabled/busy actions.",
+      "owner_slice": "BDS-07.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C068",
+      "name": "AppConfirmationDialog",
+      "module": ":ui:design-system",
+      "contract": "Present a consequential confirmation with distinct confirm/cancel intents.",
+      "verification": "Test cancellation never confirms, duplicate suppression and focus default.",
+      "owner_slice": "BDS-07.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C069",
+      "name": "AppModalBottomSheet",
+      "module": ":ui:design-system",
+      "contract": "Present controlled sheet content with gesture, keyboard and dismissal policy.",
+      "verification": "Test drag reversal, safe areas, focused lower fields and dirty dismissal cancellation.",
+      "owner_slice": "BDS-07.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C070",
+      "name": "AppCircularProgressIndicator",
+      "module": ":ui:design-system",
+      "contract": "Expose indeterminate or bounded determinate progress.",
+      "verification": "Test progress semantics, clamping, reduced motion and busy announcement.",
+      "owner_slice": "BDS-09.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C071",
+      "name": "AppLinearProgressIndicator",
+      "module": ":ui:design-system",
+      "contract": "Expose linear indeterminate or bounded determinate progress.",
+      "verification": "Test RTL, range bounds, reduced motion and visible track contrast.",
+      "owner_slice": "BDS-09.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C072",
+      "name": "AppSkeleton",
+      "module": ":ui:design-system",
+      "contract": "Reserve meaningful loading geometry without announcing decorative placeholders.",
+      "verification": "Test reduced-motion static rendering and stable layout when content arrives.",
+      "owner_slice": "BDS-09.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C073",
+      "name": "AppBanner",
+      "module": ":ui:design-system",
+      "contract": "Present persistent contextual status with optional action/dismissal.",
+      "verification": "Test severity semantics, wrapping, action callback and controlled dismissal.",
+      "owner_slice": "BDS-09.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C074",
+      "name": "AppSnackbar",
+      "module": ":ui:design-system",
+      "contract": "Present transient feedback with caller action and accessibility-aware lifetime.",
+      "verification": "Test action once, timeout policy, long text and announced message.",
+      "owner_slice": "BDS-09.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C075",
+      "name": "AppGlassHost",
+      "module": ":ui:design-system",
+      "contract": "Own effect sources, capture lifetime and resolved profile without leaking vendor types.",
+      "verification": "Test source disposal, coordinate changes, policy overrides and absence of self-capture.",
+      "owner_slice": "BDS-06.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C076",
+      "name": "AppGlassSurface",
+      "module": ":ui:design-system",
+      "contract": "Render a semantic effect surface with functionally equivalent opaque fallback.",
+      "verification": "Test all profiles, moving backgrounds, clipping and unchanged hit testing.",
+      "owner_slice": "BDS-06.02",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C077",
+      "name": "AppScreenScaffold",
+      "module": ":ui:patterns",
+      "contract": "Arrange top/content/bottom slots with explicit inset ownership.",
+      "verification": "Test keyboard/system insets, scrolling under controls and no double padding.",
+      "owner_slice": "BDS-04.06",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C078",
+      "name": "AppScreenHeader",
+      "module": ":ui:patterns",
+      "contract": "Arrange screen title, supporting content and caller actions.",
+      "verification": "Test large text, heading semantics, wrapping and focus order.",
+      "owner_slice": "BDS-04.06",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C079",
+      "name": "AppFormScaffold",
+      "module": ":ui:patterns",
+      "contract": "Arrange form content and actions with keyboard-aware scrolling.",
+      "verification": "Test focused-field visibility, bottom actions and validation focus movement.",
+      "owner_slice": "BDS-04.06",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C080",
+      "name": "AppListDetailLayout",
+      "module": ":ui:patterns",
+      "contract": "Adapt list/detail presentation to shared width rules without losing state.",
+      "verification": "Test width transitions, selected item, scroll retention and hierarchy-aware back.",
+      "owner_slice": "BDS-09.05",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C081",
+      "name": "AppAsyncContent",
+      "module": ":ui:patterns",
+      "contract": "Select explicit asynchronous presentation while retaining usable content on refresh.",
+      "verification": "Test initial/refresh/empty/error/offline transitions and cancellation.",
+      "owner_slice": "BDS-09.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C082",
+      "name": "AppLoadingState",
+      "module": ":ui:patterns",
+      "contract": "Present an accessible initial loading state distinct from refresh.",
+      "verification": "Test busy announcement, reduced motion and optional caller cancellation.",
+      "owner_slice": "BDS-09.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C083",
+      "name": "AppEmptyState",
+      "module": ":ui:patterns",
+      "contract": "Present meaningful absence with optional caller action.",
+      "verification": "Test heading/description/action order and long text.",
+      "owner_slice": "BDS-09.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C084",
+      "name": "AppErrorState",
+      "module": ":ui:patterns",
+      "contract": "Present sanitized failure and caller-controlled recovery.",
+      "verification": "Test retry suppression, message privacy and error/action semantics.",
+      "owner_slice": "BDS-09.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C085",
+      "name": "AppOfflineState",
+      "module": ":ui:patterns",
+      "contract": "Present unavailable connectivity as a distinct recoverable condition.",
+      "verification": "Test retained content, retry action and transition back to usable content.",
+      "owner_slice": "BDS-09.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C086",
+      "name": "AppPullToRefresh",
+      "module": ":ui:patterns",
+      "contract": "Expose refresh gesture and accessible alternative with caller in-flight state.",
+      "verification": "Test nested scrolling, retained content, duplicate requests and cancellation.",
+      "owner_slice": "BDS-09.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C087",
+      "name": "AppSwipeActions",
+      "module": ":ui:patterns",
+      "contract": "Expose row actions through swipe and accessible non-gesture entry.",
+      "verification": "Test reveal/cancel, destructive action confirmation ownership and RTL.",
+      "owner_slice": "BDS-09.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C088",
+      "name": "AppPaginationFooter",
+      "module": ":ui:patterns",
+      "contract": "Present page loading, retry and completion without owning data fetching.",
+      "verification": "Test duplicate page suppression, retained items and retry after failure.",
+      "owner_slice": "BDS-09.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C089",
+      "name": "AppModalHost",
+      "module": ":ui:patterns",
+      "contract": "Own presentation layering and focus while workflows own open/dismiss intent.",
+      "verification": "Test one active ownership path, stacked requests, cancellation and focus return.",
+      "owner_slice": "BDS-07.04",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C090",
+      "name": "AppFullScreenModal",
+      "module": ":ui:patterns",
+      "contract": "Present full-screen workflow content with explicit close/back behavior.",
+      "verification": "Test safe areas, dirty dismissal routing and entry disposal.",
+      "owner_slice": "BDS-09.06",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C091",
+      "name": "AppSnackbarHost",
+      "module": ":ui:patterns",
+      "contract": "Queue transient messages with action, cancellation and lifecycle ownership.",
+      "verification": "Test ordering, duplicate handling, disposed entries and accessible timing.",
+      "owner_slice": "BDS-09.06",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    },
+    {
+      "id": "C092",
+      "name": "AppAsyncImage",
+      "module": ":ui:patterns",
+      "contract": "Wrap image loading behind stable shared API with bounded decode size.",
+      "verification": "Test deterministic loading/error, cancellation, cache reuse and no network dependency in unit tests.",
+      "owner_slice": "BDS-11.01",
+      "requirements": [
+        "BUI-05",
+        "BUI-11"
+      ],
+      "evidence_required": [
+        "implementation",
+        "usage_example",
+        "applicable_states",
+        "accessibility_semantics",
+        "behavior_tests",
+        "android_ios_evidence"
+      ]
+    }
+  ]
+}

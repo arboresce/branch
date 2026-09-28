@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "authority": "../docs/spec/ui-foundation.md",
+  "services": [
+    {
+      "id": "OS01",
+      "name": "ShareLauncher",
+      "contract": "Share caller-selected safe content through the OS.",
+      "outcomes_and_lifetime": "Report only supported launch/cancel/failure outcomes; launch is not delivery. Keep temporary content access bounded.",
+      "owner_slice": "BDS-10.02",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS02",
+      "name": "PhotoPickerLauncher",
+      "contract": "Select user-chosen photos through the platform picker.",
+      "outcomes_and_lifetime": "Return opaque owned handles; distinguish cancel/unavailable/failure and avoid blanket permissions.",
+      "owner_slice": "BDS-10.03",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS03",
+      "name": "DocumentPickerLauncher",
+      "contract": "Select/open or export caller-requested documents.",
+      "outcomes_and_lifetime": "Define access lifetime, bounded reads, temporary outputs and cleanup across cancellation.",
+      "owner_slice": "BDS-10.03",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS04",
+      "name": "CameraLauncher",
+      "contract": "Capture using supported OS camera integration after explicit user intent.",
+      "outcomes_and_lifetime": "Distinguish denied/unavailable/cancelled/failed; clean temporary outputs and record simulator hardware limits.",
+      "owner_slice": "BDS-10.04",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS05",
+      "name": "BrowserLauncher",
+      "contract": "Launch a caller-approved URL through system browser integration.",
+      "outcomes_and_lifetime": "Validate allowed schemes and report unavailable/failed launch without creating a webview product.",
+      "owner_slice": "BDS-10.02",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS06",
+      "name": "PermissionController",
+      "contract": "Check/request the minimum caller-needed capability through actual OS policy.",
+      "outcomes_and_lifetime": "Handle denied/restricted/unavailable/granted without startup prompts, reprompt loops or fake dialogs.",
+      "owner_slice": "BDS-10.04",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS07",
+      "name": "BiometricAuthenticator",
+      "contract": "Request local OS authentication for an explicit caller purpose.",
+      "outcomes_and_lifetime": "Handle unsupported/not-enrolled/cancelled/failed/success as supported; never infer an account identity.",
+      "owner_slice": "BDS-10.05",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS08",
+      "name": "HapticFeedback",
+      "contract": "Map selection/confirmation/warning/error intents to available hardware feedback.",
+      "outcomes_and_lifetime": "Respect settings and lifecycle; unsupported feedback is a documented benign no-op; physical behavior needs hardware evidence.",
+      "owner_slice": "BDS-10.05",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS09",
+      "name": "ClipboardController",
+      "contract": "Read/write through platform APIs on an explicit user-relevant action.",
+      "outcomes_and_lifetime": "Do not poll or log contents; test denied/unavailable access and lifecycle disposal.",
+      "owner_slice": "BDS-10.05",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    },
+    {
+      "id": "OS10",
+      "name": "AccessibilityPreferencesProvider",
+      "contract": "Observe available text, contrast, motion and transparency signals.",
+      "outcomes_and_lifetime": "Represent unknown/unsupported signals honestly; test reactive updates and observer disposal; feed theme/effects policy early.",
+      "owner_slice": "BDS-03.04",
+      "requirements": [
+        "BUI-09",
+        "BUI-11"
+      ],
+      "targets": [
+        "android",
+        "ios"
+      ],
+      "verification": "Exercise supported native simulator paths and deterministic cancellation/failure/lifecycle races. Keep hardware-only assertions pending BDS-13."
+    }
+  ]
+}
