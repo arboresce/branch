@@ -57,23 +57,26 @@ def lint(platform: str) -> None:
         )
 
 
-def apple_environment(env: dict) -> dict:
+def apple_environment(env: dict, configuration: str = "debug", sdk: str = "simulator") -> dict:
     app = contracts()["application"]
+    architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
+    flavor = "debug" if configuration == "debug" else "release"
     env.update(
         BRANCH_IOS_MINIMUM_OS=contracts()["native-artifacts"]["ios"]["minimum_os"],
         BRANCH_BUNDLE_ID=app["bundle_id"],
         BRANCH_DISPLAY_NAME=app["display_name"],
         BRANCH_APP_VERSION=app["version"],
         BRANCH_BUILD_NUMBER=str(app["version_code"]),
+        BRANCH_IOS_CONFIGURATION=configuration.capitalize(),
         BRANCH_UI=str(
             output()
-            / "gradle/shared/xc-framework/bin/iosSimulatorArm64/debugFramework/BranchUI.framework"
+            / f"gradle/shared/xc-framework/bin/{architecture}/{flavor}Framework/BranchUI.framework"
         ),
     )
     return env
 
 
-def xcode(env: dict, *args: str) -> None:
+def xcode(env: dict, configuration: str, *args: str) -> None:
     native.run(
         "xcodebuild",
         "-project",
@@ -81,7 +84,7 @@ def xcode(env: dict, *args: str) -> None:
         "-scheme",
         "Branch",
         "-configuration",
-        "Debug",
+        configuration.capitalize(),
         "-derivedDataPath",
         str(output() / "ios/derived"),
         *args,
@@ -89,16 +92,19 @@ def xcode(env: dict, *args: str) -> None:
     )
 
 
-def build(platform: str) -> dict:
+def build(platform: str, configuration: str = "debug", sdk: str = "simulator") -> dict:
     env = environment(platform)
     if platform == "android":
-        gradle(env, ":android:app:assembleDebug", ":android:app:assembleDebugAndroidTest")
+        tasks = [f":android:app:assemble{configuration.capitalize()}"]
+        if configuration == "debug":
+            tasks.append(":android:app:assembleDebugAndroidTest")
+        gradle(env, *tasks)
     else:
-        apple_environment(env)
+        apple_environment(env, configuration, sdk)
+        architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
         gradle(
             env,
-            ":shared:xc-framework:linkDebugFrameworkIosSimulatorArm64",
-            ":shared:xc-framework:linkDebugFrameworkIosArm64",
+            f":shared:xc-framework:link{configuration.capitalize()}Framework{architecture}",
         )
         project = output() / "ios/project"
         project.mkdir(parents=True, exist_ok=True)
@@ -112,12 +118,16 @@ def build(platform: str) -> dict:
             str(project),
             env=env,
         )
+        destination = (
+            "generic/platform=iOS Simulator" if sdk == "simulator" else "generic/platform=iOS"
+        )
         xcode(
             env,
+            configuration,
             "-sdk",
-            "iphonesimulator",
+            "iphonesimulator" if sdk == "simulator" else "iphoneos",
             "-destination",
-            "generic/platform=iOS Simulator",
+            destination,
             "build",
         )
     return env
@@ -263,11 +273,11 @@ def android_device():
                 process.wait(timeout=10)
 
 
-def test(platform: str) -> None:
-    env = build(platform)
+def test(platform: str, configuration: str = "debug") -> None:
+    env = build(platform, configuration)
     if platform == "ios":
         with ios_device() as udid:
-            xcode(env, "-destination", f"platform=iOS Simulator,id={udid}", "test")
+            xcode(env, configuration, "-destination", f"platform=iOS Simulator,id={udid}", "test")
     else:
         with android_device() as serial:
             env["ANDROID_SERIAL"] = serial
@@ -322,4 +332,4 @@ def setup(platform: str) -> None:
             "emulator",
             contracts()["development"]["android_image"],
         )
-    build(platform)
+    build(platform, "debug")

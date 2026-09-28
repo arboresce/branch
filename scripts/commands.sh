@@ -41,7 +41,7 @@ platform_action() {
     esac
 }
 case "$1" in
-    help) printf '%s\n' 'doctor setup check test verify' 'setup-rust check-rust test-rust verify-rust' 'setup-ios dev-ios build-ios check-ios test-ios verify-ios' 'setup-android dev-android build-android check-android test-android verify-android' ;;
+    help) printf '%s\n' 'doctor setup check test verify' 'setup-rust check-rust test-rust verify-rust' 'setup-ios dev-ios build-ios build-release-ios build-ios-device check-ios test-ios verify-ios' 'setup-android dev-android build-android build-release-android check-android test-android verify-android' ;;
     doctor)
         cargo --version
         rustc --version
@@ -64,6 +64,9 @@ case "$1" in
         platform_action "$1" android
         platform_action "$1" ios
         ;;
+    build-release-ios) asset branch-native build ios --configuration release ;;
+    build-ios-device) asset branch-native build ios --configuration release --sdk device ;;
+    build-release-android) asset branch-native build android --configuration release ;;
     setup-ios | dev-ios | build-ios | check-ios | test-ios | verify-ios) platform_action "${1%-ios}" ios ;;
     setup-android | dev-android | build-android | check-android | test-android | verify-android) platform_action "${1%-android}" android ;;
     *)

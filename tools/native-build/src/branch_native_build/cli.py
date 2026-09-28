@@ -22,6 +22,8 @@ def main() -> None:
         ],
     )
     parser.add_argument("platform", choices=["ios", "android"], nargs="?")
+    parser.add_argument("--configuration", choices=["debug", "release"], default="debug")
+    parser.add_argument("--sdk", choices=["simulator", "device"], default="simulator")
     args = parser.parse_args()
     config.local_environment()
     if args.action.startswith("config-"):
@@ -42,7 +44,12 @@ def main() -> None:
         else:
             from . import mobile
 
-            getattr(mobile, args.action)(args.platform)
+            if args.action == "build":
+                mobile.build(args.platform, args.configuration, args.sdk)
+            elif args.action == "test":
+                mobile.test(args.platform, args.configuration)
+            else:
+                getattr(mobile, args.action)(args.platform)
 
 
 if __name__ == "__main__":

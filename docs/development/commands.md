@@ -14,6 +14,9 @@ containing this Makefile.
 | make verify-rust | Run Rust checks, then tests |
 | make setup-android / setup-ios | Prepare locked Python tools, platform Rust targets, settings, bindings and debug app |
 | make build-android / build-ios | Verify settings, build/reuse verified native artifacts and build the debug app |
+| make build-release-android | Build the release Android app variant; no signing identity is invented |
+| make build-release-ios | Build and link the Release simulator framework and app |
+| make build-ios-device | Build the Release device framework and app where local signing/tooling permits |
 | make dev-android / dev-ios | Build, install and launch, retaining foreground console attachment |
 | make check-android / check-ios | Check Rust, Python tests/style, Kotlin style, settings and native artifact integrity; Android also runs Android Lint; iOS checks Swift style. No repairs |
 | make test-android / test-ios | Build, boot/select a device and execute native platform tests |
