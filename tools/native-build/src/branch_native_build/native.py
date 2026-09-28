@@ -1,6 +1,7 @@
 import fcntl
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -8,6 +9,9 @@ import tempfile
 from pathlib import Path
 
 from .config import ROOT, configure, contracts, digest, output
+
+SCHEMA_VERSION = 2
+_OPT_LEVELS = {"0", "1", "2", "3", "s", "z"}
 
 
 def run(*args: str, env: dict | None = None, cwd: Path = ROOT) -> None:
@@ -50,17 +54,50 @@ def identity(platform: str) -> dict:
     inputs = {str(p.relative_to(ROOT)): digest(p.read_bytes()) for p in sorted(set(files))}
     toolchain = {
         "rustc": capture("rustc", "-Vv"),
+        "opt_level": _release_opt_level(),
         "rustflags": os.environ.get("RUSTFLAGS", ""),
         "encoded_rustflags": os.environ.get("CARGO_ENCODED_RUSTFLAGS", ""),
     }
     if platform == "ios":
         toolchain["xcode"] = capture("xcodebuild", "-version")
         toolchain["sdk"] = capture("xcrun", "--sdk", "iphoneos", "--show-sdk-version")
+        toolchain["deployment_target"] = _deployment_target(
+            config["native-artifacts"]["ios"]["minimum_os"]
+        )
     else:
         toolchain["ndk"] = (
             sdk() / "ndk" / config["native-artifacts"]["android"]["ndk"] / "source.properties"
         ).read_text()
-    return {"schema_version": 1, "platform": platform, "inputs": inputs, "toolchain": toolchain}
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "platform": platform,
+        "inputs": inputs,
+        "toolchain": toolchain,
+    }
+
+
+def _release_opt_level() -> str:
+    value = os.environ.get("CARGO_PROFILE_RELEASE_OPT_LEVEL") or "3"
+    if value not in _OPT_LEVELS:
+        raise ValueError(f"Unsupported CARGO_PROFILE_RELEASE_OPT_LEVEL: {value}")
+    return value
+
+
+def _deployment_target(contract: str) -> str:
+    value = os.environ.get("IPHONEOS_DEPLOYMENT_TARGET")
+    if not value:
+        return contract
+    if _version(value) != _version(contract):
+        raise ValueError("IPHONEOS_DEPLOYMENT_TARGET conflicts with the native contract")
+    return contract
+
+
+def _version(value: str) -> tuple[int, ...]:
+    try:
+        parts = [int(part) for part in re.split(r"[.]", value)]
+    except ValueError as error:
+        raise ValueError(f"Invalid version input: {value}") from error
+    return tuple(parts + [0] * (3 - len(parts)))
 
 
 def location(platform: str, data: dict | None = None) -> Path:
