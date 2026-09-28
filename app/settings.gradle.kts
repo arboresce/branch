@@ -24,5 +24,10 @@ fun module(
     project(projectPath).projectDir = directory
 }
 module("android/app", ":android:app")
-module("ui/diagnostic/public", ":ui:diagnostic-public")
+module("catalog", ":catalog")
+module("platform", ":platform")
+module("shared/app", ":shared:app")
 module("shared/xc-framework", ":shared:xc-framework")
+module("ui/design-system", ":ui:design-system")
+module("ui/diagnostic/public", ":ui:diagnostic-public")
+module("ui/patterns", ":ui:patterns")
