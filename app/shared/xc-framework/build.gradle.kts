@@ -11,7 +11,7 @@ kotlin {
         }
     }
     sourceSets.commonMain.dependencies {
-        implementation(project(":shared:app"))
+        api(project(":shared:app"))
         implementation(project(":ui:diagnostic-public"))
         implementation(compose.ui)
     }

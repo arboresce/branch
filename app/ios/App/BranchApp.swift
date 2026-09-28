@@ -4,24 +4,22 @@ import SwiftUI
 @main
 struct BranchApp: App {
     @StateObject private var store = RuntimeStore()
+
     var body: some Scene {
         WindowGroup {
-            Group {
-                if let snapshot = store.snapshot {
-                    DiagnosticHost(snapshot: snapshot).ignoresSafeArea()
-                } else {
-                    ProgressView("Loading runtime…")
-                }
-            }
-            .task { await store.load() }
+            DiagnosticHost(controller: store.controller)
+                .ignoresSafeArea()
+                .task { store.load() }
         }
     }
 }
 
 struct DiagnosticHost: UIViewControllerRepresentable {
-    let snapshot: String
+    let controller: AppRuntimeController
+
     func makeUIViewController(context: Context) -> UIViewController {
-        MainViewControllerKt.makeDiagnosticViewController(snapshot: snapshot)
+        MainViewControllerKt.makeDiagnosticViewController(controller: controller)
     }
+
     func updateUIViewController(_ controller: UIViewController, context: Context) {}
 }

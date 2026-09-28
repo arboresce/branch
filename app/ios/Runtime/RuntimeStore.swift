@@ -1,20 +1,20 @@
-import Combine
+import BranchUI
 import Foundation
 
-actor RuntimeClient {
-    private let runtime = BranchRuntime()
-    func snapshot() throws -> String { try runtime.snapshotJson() }
-    deinit { try? runtime.shutdown() }
+final class RustRuntimeSource: AppRuntimeSource {
+    private lazy var runtime = BranchRuntime()
+
+    func snapshot() -> String? {
+        try? runtime.snapshotJson()
+    }
 }
 
 @MainActor
 final class RuntimeStore: ObservableObject {
-    @Published private(set) var snapshot: String?
-    private let client = RuntimeClient()
-    func load() async {
-        guard snapshot == nil else { return }
-        do { snapshot = try await client.snapshot() } catch {
-            snapshot = "{\"error\": \"runtime_unavailable\"}"
-        }
+    let controller: AppRuntimeController =
+        MainViewControllerKt.createDiagnosticController(source: RustRuntimeSource())
+
+    func load() {
+        controller.load()
     }
 }

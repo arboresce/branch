@@ -20,13 +20,14 @@ kotlin {
     jvmToolchain(21)
     sourceSets {
         commonMain.dependencies {
+            api(project(":ui:diagnostic-public"))
             implementation(project(":platform"))
             implementation(project(":ui:design-system"))
-            implementation(project(":ui:diagnostic-public"))
             implementation(project(":ui:patterns"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
         }
+        commonTest.dependencies { implementation(kotlin("test")) }
     }
 }
