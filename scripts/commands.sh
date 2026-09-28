@@ -14,6 +14,7 @@ check_rust() {
 }
 check_tools() {
     asset branch-native config-check
+    asset branch-native contract-check
     asset ruff check tools/native-build
     asset ruff format --check tools/native-build
     asset pytest tools/native-build/tests -q -o cache_dir="${BRANCH_BUILD_DIR:-$PWD/.build}/pytest-cache"

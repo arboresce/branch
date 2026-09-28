@@ -10,6 +10,7 @@ Internal producer entry points, from the Branch project directory:
 uv sync --project tools/native-build --locked
 uv run --project tools/native-build --locked --no-sync branch-native config-write
 uv run --project tools/native-build --locked --no-sync branch-native config-check
+uv run --project tools/native-build --locked --no-sync branch-native contract-check
 uv run --project tools/native-build --locked --no-sync branch-native build-native android
 uv run --project tools/native-build --locked --no-sync branch-native build-native ios
 uv run --project tools/native-build --locked --no-sync branch-native check-native android
@@ -28,4 +29,7 @@ cohorts; existing corrupt artifacts are not overwritten automatically.
 
 Run the package tests with
 `uv run --project tools/native-build --locked --no-sync pytest tools/native-build/tests`. Contract schemas are closed and compare UniFFI/app
-versions to their Cargo authorities. No local environment file is evaluated as shell.
+versions to their Cargo authorities. `contract-check` validates the component and
+platform service inventories against their closed schemas, the declared totals,
+the owning BDS slices, the BUI requirements and the local authority reference; no
+local environment file is evaluated as shell.

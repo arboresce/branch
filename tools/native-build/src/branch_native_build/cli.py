@@ -1,4 +1,5 @@
 import argparse
+import json
 
 from . import config, native
 
@@ -10,6 +11,7 @@ def main() -> None:
         choices=[
             "config-write",
             "config-check",
+            "contract-check",
             "build-native",
             "check-native",
             "lint",
@@ -24,6 +26,10 @@ def main() -> None:
     config.local_environment()
     if args.action.startswith("config-"):
         config.configure(args.action == "config-write")
+    elif args.action == "contract-check":
+        from . import inventory
+
+        print(json.dumps(inventory.validate(), sort_keys=True))
     else:
         if not args.platform:
             parser.error("platform is required")
