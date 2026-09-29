@@ -1,10 +1,10 @@
 # BDS-01: Native integrity and build profiles
 
-Status: BDS-01.01 fourth-review corrections committed at `486b3b3`, independent acceptance pending, 2026-09-29.
+Status: complete; independently accepted at revision `cc9b138`, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-01, BUI-02.
 Prerequisites: [BDS-00](bds-00-contracts.md).
-Next action: await independent acceptance at the acceptance gate; retain the other native checkpoints.
+Next action: retain all four native checkpoints; finish the remaining BDS-02 harness correction before the foundation acceptance gate.
 
 ## Scope
 
@@ -95,7 +95,20 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; BDS-01.02 retained complete; BDS-01.01 corrected at `beefd3d`, BDS-01.03 at `eaf92a5`, BDS-01.04 at `7d3ca29` on 2026-09-29; BDS-01.01 fourth-review corrected at `486b3b3` on 2026-09-29 (public plan/spec amendments at `c9d98cb`).
 Current implementation slice: none.
-Open failures/limits: R4-01/02 corrected at `486b3b3`, pending independent acceptance. Retain selector/linker/config-env rejection, host rustflags, actual subprocess checks, F08/F09 and NDK host matching. Linux producer execution and hosted CI remain NOT_RUN.
+Open failures/limits: no remaining BDS-01 correction. R4-01/02 independently accepted at `cc9b138`. Linux producer execution and hosted CI remain NOT_RUN; local acceptance does not qualify those environments.
+
+## Fifth-review acceptance (2026-09-29)
+
+Accept R4-01/02 and all BDS-01 checkpoints. The exact host-tool exception is
+enforced before fresh/cached lookup with key-only diagnostics. The test suite
+covers supported subprocess environments, output-only equivalence and meaningful
+rustflag invalidation at repository, ancestor and Cargo-home levels. Duplicate raw
+repository-config hashing is removed. Independent `make check-tools` passed 158
+tests; both default production hosts were built successfully with the current
+producer. Existing integrity, routing, readiness and selector protections remain.
+
+The older amendments below are historical correction instructions, not remaining
+work. Do not reopen native implementation for the BDS-02 test-only correction.
 
 ## Fourth-review amendment (2026-09-29)
 
