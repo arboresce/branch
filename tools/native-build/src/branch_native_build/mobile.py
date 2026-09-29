@@ -68,6 +68,16 @@ def apple_environment(env: dict, configuration: str = "debug", sdk: str = "simul
         BRANCH_APP_VERSION=app["version"],
         BRANCH_BUILD_NUMBER=str(app["version_code"]),
         BRANCH_IOS_CONFIGURATION=configuration.capitalize(),
+        BRANCH_COMPOSE_RESOURCES=str(
+            output()
+            / f"gradle/shared/xc-framework/kotlin-multiplatform-resources/aggregated-resources/{architecture}/composeResources"
+        ),
+        BRANCH_COMPOSE_BUNDLE=str(
+            output()
+            / "ios/derived/Build/Products"
+            / f"{configuration.capitalize()}-{'iphonesimulator' if sdk == 'simulator' else 'iphoneos'}"
+            / "Branch.app/compose-resources/composeResources"
+        ),
         BRANCH_UI=str(
             output()
             / f"gradle/shared/xc-framework/bin/{architecture}/{flavor}Framework/BranchUI.framework"
@@ -105,6 +115,7 @@ def build(platform: str, configuration: str = "debug", sdk: str = "simulator") -
         gradle(
             env,
             f":shared:xc-framework:link{configuration.capitalize()}Framework{architecture}",
+            f":shared:xc-framework:assemble{architecture[0].upper()}{architecture[1:]}MainResources",
         )
         project = output() / "ios/project"
         project.mkdir(parents=True, exist_ok=True)
@@ -282,6 +293,12 @@ def test(platform: str, configuration: str = "debug") -> None:
         with android_device() as serial:
             env["ANDROID_SERIAL"] = serial
             gradle(env, ":android:app:connectedDebugAndroidTest")
+
+
+def test_shared() -> None:
+    env = environment("ios")
+    with ios_device():
+        gradle(env, ":catalog:allTests", ":shared:app:allTests")
 
 
 def dev(platform: str) -> None:

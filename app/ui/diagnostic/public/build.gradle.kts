@@ -11,6 +11,7 @@ kotlin {
         namespace = "ai.arboresce.branch.ui"
         compileSdk = nativeSettings.getProperty("compileSdk").toInt()
         minSdk = nativeSettings.getProperty("minSdk").toInt()
+        androidResources.enable = true
     }
     iosArm64()
     iosSimulatorArm64()
