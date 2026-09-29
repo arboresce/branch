@@ -3,8 +3,11 @@ import SwiftUI
 
 @MainActor
 final class CatalogStore: ObservableObject {
-    nonisolated(unsafe) let controller: AppRuntimeController =
-        CatalogBridgeKt.createCatalogController()
+    nonisolated(unsafe) let controller: AppRuntimeController
+
+    init(controller: AppRuntimeController = CatalogBridgeKt.createCatalogController()) {
+        self.controller = controller
+    }
 
     func load() {
         controller.load()

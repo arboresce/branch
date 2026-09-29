@@ -5,11 +5,14 @@ import ai.arboresce.branch.catalog.CatalogRoot
 import ai.arboresce.branch.catalog.ScriptedRuntimeSource
 import ai.arboresce.branch.catalog.glassCapabilityAvailable
 import ai.arboresce.branch.shared.RuntimeController
+import ai.arboresce.branch.shared.RuntimeSource
 import ai.arboresce.branch.shared.createRuntimeController
 import ai.arboresce.branch.ui.DiagnosticPhase
 import androidx.compose.ui.window.ComposeUIViewController
 
 fun createCatalogController(): RuntimeController = createRuntimeController(ScriptedRuntimeSource())
+
+fun createCatalogController(source: RuntimeSource): RuntimeController = createRuntimeController(source)
 
 fun catalogGlassCapability(): Boolean = true
 
@@ -26,3 +29,5 @@ fun catalogPhaseKind(controller: RuntimeController): String =
         is DiagnosticPhase.Content -> "content"
         is DiagnosticPhase.Error -> "error"
     }
+
+fun catalogPhaseText(controller: RuntimeController): String? = (controller.phase.value as? DiagnosticPhase.Content)?.text
