@@ -7,7 +7,11 @@ from jsonschema import Draft202012Validator
 from .config import ROOT
 
 _CHECKPOINT = re.compile(r"BDS-[0-9]{2}\.[0-9]{2}")
-_REQUIREMENT = re.compile(r"BUI-[0-9]{2}")
+_CHECKPOINT_SECTION = re.compile(r"^#{2,3}\s+(BDS-[0-9]{2}\.[0-9]{2}):\s*(.*)$", re.MULTILINE)
+_REQUIREMENT_SECTION = re.compile(r"^##\s+(BUI-[0-9]{2}):\s*(.*)$", re.MULTILINE)
+_NEXT_HEADING = re.compile(r"\n#{2,3}\s")
+_PLAN_DIRECTORY = "docs/execution/ui-foundation"
+_SPEC = "docs/spec/ui-foundation.md"
 _WORDS = {
     "one": 1,
     "two": 2,
@@ -54,12 +58,62 @@ def _sequence(items: list[dict], prefix: str, label: str, width: int, total: int
     return identifiers
 
 
-def _known(root: Path, pattern: re.Pattern, directory: Path, suffix: str) -> set[str]:
-    return {
-        match
-        for path in sorted(directory.glob(f"*{suffix}"))
-        for match in pattern.findall(path.read_text())
-    }
+def _section_body(text: str, end: int) -> str:
+    remainder = text[end:]
+    following = _NEXT_HEADING.search(remainder)
+    return remainder if following is None else remainder[: following.start()]
+
+
+def _checkpoint_definitions(root: Path) -> set[str]:
+    directory = root / _PLAN_DIRECTORY
+    tables: dict[str, Path] = {}
+    sections: dict[str, Path] = {}
+    for path in sorted(directory.glob("*.md")):
+        text = path.read_text()
+        for line in text.splitlines():
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if not cells or not _CHECKPOINT.fullmatch(cells[0]):
+                continue
+            identifier = cells[0]
+            if len(cells) < 4 or not cells[2] or not cells[3]:
+                raise ValueError(f"Incomplete checkpoint table row: {identifier}")
+            if identifier in tables:
+                raise ValueError(f"Duplicate checkpoint definition: {identifier}")
+            tables[identifier] = path
+        for match in _CHECKPOINT_SECTION.finditer(text):
+            identifier = match.group(1)
+            if not match.group(2).strip():
+                raise ValueError(f"Missing checkpoint section title: {identifier}")
+            if identifier in sections:
+                raise ValueError(f"Duplicate checkpoint definition: {identifier}")
+            body = _section_body(text, match.end())
+            if "Scope:" not in body or "Definition of green:" not in body:
+                raise ValueError(f"Incomplete checkpoint section definition: {identifier}")
+            sections[identifier] = path
+    if not tables:
+        raise ValueError("Missing planning authority for inventory references")
+    table_only = sorted(set(tables) - set(sections))
+    section_only = sorted(set(sections) - set(tables))
+    if table_only:
+        raise ValueError(f"Checkpoint table row lacks a matching section: {table_only[0]}")
+    if section_only:
+        raise ValueError(f"Checkpoint section lacks a matching table row: {section_only[0]}")
+    return set(tables)
+
+
+def _requirement_definitions(root: Path) -> set[str]:
+    text = (root / _SPEC).read_text()
+    definitions = set()
+    for match in _REQUIREMENT_SECTION.finditer(text):
+        identifier = match.group(1)
+        if not match.group(2).strip():
+            raise ValueError(f"Missing requirement section title: {identifier}")
+        if identifier in definitions:
+            raise ValueError(f"Duplicate requirement definition: {identifier}")
+        definitions.add(identifier)
+    if not definitions:
+        raise ValueError("Missing planning authority for inventory references")
+    return definitions
 
 
 def _reference(root: Path, source: Path, value: str) -> None:
@@ -71,7 +125,7 @@ def _reference(root: Path, source: Path, value: str) -> None:
 def validate(root: Path = ROOT) -> dict:
     components = _contract(root, "ui-components")
     services = _contract(root, "platform-services")
-    authority = (root / "docs/spec/ui-foundation.md").read_text()
+    authority = (root / _SPEC).read_text()
     _sequence(
         components["components"],
         "C",
@@ -86,10 +140,8 @@ def validate(root: Path = ROOT) -> dict:
         2,
         _declared(authority, "service"),
     )
-    checkpoints = _known(root, _CHECKPOINT, root / "docs/execution/ui-foundation", ".md")
-    requirements = _known(root, _REQUIREMENT, root / "docs/spec", "ui-foundation.md")
-    if not checkpoints or not requirements:
-        raise ValueError("Missing planning authority for inventory references")
+    checkpoints = _checkpoint_definitions(root)
+    requirements = _requirement_definitions(root)
     for name, data, key in (
         ("ui-components", components, "components"),
         ("platform-services", services, "services"),

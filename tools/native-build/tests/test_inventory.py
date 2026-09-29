@@ -89,3 +89,53 @@ def test_broken_authority_reference_fails(tmp_path):
     save(root, "platform-services", data)
     with pytest.raises(ValueError, match="Broken local reference"):
         inventory.validate(root)
+
+
+def test_orphan_mention_is_not_a_checkpoint_definition(tmp_path):
+    root = fixture(tmp_path)
+    plan = root / "docs/execution/ui-foundation/bds-00-contracts.md"
+    plan.write_text(plan.read_text() + "\nProse mention of BDS-99.99 is not a definition.\n")
+    summary = inventory.validate(root)
+    assert summary["checkpoints"] == 65
+    data = load(root, "ui-components")
+    data["components"][0]["owner_slice"] = "BDS-99.99"
+    save(root, "ui-components", data)
+    with pytest.raises(ValueError, match="Unknown owning slice"):
+        inventory.validate(root)
+
+
+def test_duplicate_checkpoint_definition_fails(tmp_path):
+    root = fixture(tmp_path)
+    plan = root / "docs/execution/ui-foundation/bds-00-contracts.md"
+    row = "| BDS-00.02 | planned | Correct inventory authority validation | V0, V1 |\n"
+    plan.write_text(plan.read_text().replace(row, row + row))
+    with pytest.raises(ValueError, match="Duplicate checkpoint definition"):
+        inventory.validate(root)
+
+
+def test_checkpoint_table_row_without_section_fails(tmp_path):
+    root = fixture(tmp_path)
+    plan = root / "docs/execution/ui-foundation/bds-00-contracts.md"
+    row = "| BDS-00.02 | planned | Correct inventory authority validation | V0, V1 |\n"
+    plan.write_text(
+        plan.read_text().replace(row, row + "| BDS-00.09 | planned | Orphan row | V0 |\n")
+    )
+    with pytest.raises(ValueError, match="lacks a matching section"):
+        inventory.validate(root)
+
+
+def test_checkpoint_section_without_table_row_fails(tmp_path):
+    root = fixture(tmp_path)
+    plan = root / "docs/execution/ui-foundation/bds-00-contracts.md"
+    row = "| BDS-00.02 | planned | Correct inventory authority validation | V0, V1 |\n"
+    plan.write_text(plan.read_text().replace(row, ""))
+    with pytest.raises(ValueError, match="lacks a matching table row"):
+        inventory.validate(root)
+
+
+def test_duplicate_requirement_definition_fails(tmp_path):
+    root = fixture(tmp_path)
+    spec = root / "docs/spec/ui-foundation.md"
+    spec.write_text(spec.read_text() + "\n## BUI-01: Duplicate definition\n\nbody\n")
+    with pytest.raises(ValueError, match="Duplicate requirement definition"):
+        inventory.validate(root)

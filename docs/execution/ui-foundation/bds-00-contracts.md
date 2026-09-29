@@ -1,10 +1,10 @@
 # BDS-00: Contracts and baseline
 
-Status: implemented and locally verified; independent review pending.
+Status: correction required after independent review, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-12, BUI-01, BUI-02.
 Prerequisites: None; first execution unit.
-Next action: inspect current authority and working-tree state, then execute BDS-00.01 after prerequisites are verified.
+Next action: correct BDS-00.02 under the review amendment below; retain the accepted mapping and historical baseline.
 
 ## Scope
 
@@ -19,6 +19,8 @@ Next action: inspect current authority and working-tree state, then execute BDS-
 - `docs/execution/mobile-bootstrap-rcld.md`
 - `docs/README.md`
 - `tools/native-build/tests/ (contract validation only)`
+- `tools/native-build/src/branch_native_build/inventory.py`
+- `tools/native-build/src/branch_native_build/cli.py (contract-check routing only)`
 
 Only change these bounded areas for this unit. A needed expansion requires an
 explicit scope amendment before editing. Preserve unrelated work and native identities.
@@ -35,7 +37,7 @@ No new service contract is owned by this unit.
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
 | BDS-00.01 | complete | Approve public contract mapping | V0 |
-| BDS-00.02 | complete | Make inventory checks executable | V0, V1 |
+| BDS-00.02 | planned | Correct inventory authority validation | V0, V1 |
 | BDS-00.03 | complete | Record actual baseline and historical context | V0, V1, V6 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
@@ -84,9 +86,28 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: complete (commits `0d06e44`, `2e1d29e`, `c0ebef4`).
+Checkpoint evidence: submitted commits `0d06e44`, `2e1d29e`, `c0ebef4`; BDS-00.02 is reopened.
 Current implementation slice: none.
-Open failures/limits: independent Codex review pending; no root gitlink update.
+Open failures/limits: F07 below; corrected implementation requires independent acceptance.
+
+## Review amendment (2026-09-29)
+
+F07: `inventory._known` scans every mention of an identifier. An inventory entry
+assigned to an undefined checkpoint passes if the same identifier is added as
+incidental prose in any plan. This does not establish an owning slice.
+
+BDS-00.02 must resolve authoritative checkpoint table rows and matching scope,
+green-criteria and verification definitions, and requirement section definitions.
+Reject orphan mentions, duplicate definitions, table/section disagreement,
+missing owners and broken repository-local authority/plan links. Keep the valid
+92-component, ten-service, 65-checkpoint mapping; do not count prose references
+as additional checkpoints. Preserve closed schemas and existing rejection cases.
+Use disposable fixtures to prove each rejection, including the observed orphan
+mention case. Record actual evidence formats without claiming component behavior
+is implemented merely because the inventory passes.
+
+The mapping and historical baseline are retained. This correction changes the
+validator, not the approved component inventory or downstream scope.
 
 ## Checkpoint record
 
@@ -121,4 +142,3 @@ Xcode 26.6, JDK 21. No whole-checkout qualification is claimed.
 ## Sequence
 
 [BDS-00](bds-00-contracts.md) · [BDS-01](bds-01-native-build.md) · [BDS-02](bds-02-shared-hosts.md) · [BDS-03](bds-03-theme.md) · [BDS-04](bds-04-primitives.md) · [BDS-05](bds-05-navigation.md) · [BDS-06](bds-06-glass.md) · [BDS-07](bds-07-editing.md) · [BDS-08](bds-08-controls.md) · [BDS-09](bds-09-patterns.md) · [BDS-10](bds-10-platform.md) · [BDS-11](bds-11-media.md) · [BDS-12](bds-12-simulator-qualification.md) · [BDS-13](bds-13-device-qualification.md)
-
