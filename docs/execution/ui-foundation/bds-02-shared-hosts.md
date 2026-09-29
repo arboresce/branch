@@ -4,7 +4,7 @@ Status: BDS-02.02/.04/.05 corrected, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
-Next action: await independent acceptance at the Codex gate before BDS-03 or assets.
+Next action: await independent acceptance at the acceptance gate before BDS-03 or assets.
 
 ## Scope
 
