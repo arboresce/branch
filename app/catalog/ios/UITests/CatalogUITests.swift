@@ -28,4 +28,25 @@ final class CatalogUITests: XCTestCase {
         let success = app.descendants(matching: .any).matching(identifier: "image-success").firstMatch
         XCTAssertTrue(success.waitForExistence(timeout: 30))
     }
+
+    func testDiagnosticUpdatesInPlaceAndResumesAfterBackground() {
+        let app = XCUIApplication()
+        app.launch()
+        let snapshot = app.descendants(matching: .any).matching(identifier: "runtime-snapshot")
+            .firstMatch
+        XCTAssertTrue(snapshot.waitForExistence(timeout: 30))
+        let next = app.descendants(matching: .any).matching(identifier: "diagnostic-next").firstMatch
+        XCTAssertTrue(next.waitForExistence(timeout: 30))
+        next.tap()
+        let updated = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label CONTAINS %@", "\"revision\":1"),
+            object: snapshot)
+        XCTAssertEqual(XCTWaiter().wait(for: [updated], timeout: 15), .completed)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        let resumed = app.descendants(matching: .any).matching(identifier: "runtime-snapshot")
+            .firstMatch
+        XCTAssertTrue(resumed.waitForExistence(timeout: 30))
+        XCTAssertTrue(resumed.label.contains("\"revision\""))
+    }
 }

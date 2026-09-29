@@ -24,10 +24,6 @@ class RuntimeViewModel(
             viewModelScope,
         )
 
-    init {
-        controller.load()
-    }
-
     override fun onCleared() {
         controller.dispose()
     }

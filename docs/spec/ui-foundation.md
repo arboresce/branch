@@ -110,6 +110,10 @@ and release controller work explicitly; a controller-owned scope is cancelled on
 disposal without cancelling an externally supplied host scope. Retry from error
 enters loading and suppresses duplicate activation. Prove these transitions with
 controlled in-flight work and with visible updates in the same hosted UI instance.
+An inactive/background owner cancels its request and resumes with one explicit
+load when active again. A transient view disappearance is not terminal disposal
+of an owner that will be reused. Terminal disposal follows owner removal; host and
+catalog implementations must make that lifetime explicit and test resumption.
 Cancellation is not a user-visible failure. Components receive state and callbacks;
 they do not access runtime handles. Verify successive iOS updates, shared error
 presentation, recreation and disposal without losing unrelated navigation state.
@@ -205,6 +209,11 @@ large text and focus visibility without double padding or obscured actions.
 ## BUI-08: Glass
 
 Backdrop is the initial internal adapter, subject to the compatibility prototype.
+The reviewed foundation candidate is `io.github.kyant0:backdrop:2.0.0-alpha03`
+under the existing compile SDK 36, Android API 28 and iOS 18 contracts. Retain this
+pin through initial implementation unless a reviewed decision supersedes it.
+Compatibility probes and later simulator/device gates still apply; selecting the
+prerelease does not qualify physical performance or authorize a toolchain change.
 An evidence-backed replacement requires a recorded specification decision.
 `AppGlassHost` owns capture/policy; `AppGlassSurface` consumes a library-neutral
 source. Full, Reduced and Opaque preserve semantics, hit testing, layout and actions.

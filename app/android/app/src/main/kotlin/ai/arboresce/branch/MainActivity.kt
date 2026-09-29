@@ -1,6 +1,5 @@
 package ai.arboresce.branch
 
-import ai.arboresce.branch.shared.AppRoot
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,7 +12,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val model: RuntimeViewModel = viewModel()
-            AppRoot(model.controller)
+            RuntimeHost(model.controller)
         }
     }
 }

@@ -1,10 +1,10 @@
 # BDS-02: Reactive shared hosts and verification harness
 
-Status: correction complete, independent acceptance pending, 2026-09-29.
+Status: BDS-02.02 corrected; BDS-02.04/.05 pending, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
-Next action: await Codex gate arbi-6v62.19 acceptance; then BDS-03 and the private asset gate.
+Next action: complete BDS-02.04/.05, then stop for independent acceptance before BDS-03.
 
 ## Scope
 
@@ -50,10 +50,10 @@ No new service contract is owned by this unit.
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
 | BDS-02.01 | complete | Introduce compiling module boundaries | V0, V2 |
-| BDS-02.02 | complete | Correct reactive lifecycle and in-flight races | V2, V3 |
+| BDS-02.02 | complete | Complete lifecycle resumption and race evidence | V2, V3 |
 | BDS-02.03 | complete | Launch the independent deterministic catalog | V2, V3 |
-| BDS-02.04 | complete | Run the required dependency prototypes | V2, V3 |
-| BDS-02.05 | complete | Complete shared runners and viable CI bootstrap | V0, V2, V3 |
+| BDS-02.04 | planned | Qualify glass and consumer resource delivery | V2, V3 |
+| BDS-02.05 | planned | Close runner, CI and catalog-check gaps | V0, V2, V3 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -119,7 +119,77 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: F02-F06 corrected locally. Stable Backdrop 2.0.0/2.0.1 require `compileSdk 37`; the compatible pin is `2.0.0-alpha03` (see decision below). Hosted CI is defined and structurally validated but NOT_RUN. No hosted or physical-device execution occurred. Independent Codex acceptance remains open at arbi-6v62.19.
+Open failures/limits: R2-02 corrected with owner-scoped resumption and controlled blocked-work tests. R2-03 through R2-05 and R2-07 remain open. Hosted CI, Linux execution and physical qualification remain NOT_RUN. The second-review Backdrop decision supersedes the submitted pending-decision text.
+
+## Second-review amendment (2026-09-29)
+
+Retain the launchable separate catalogs, Navigation 3 transition/serialization,
+Coil image loading, terminal controller disposal and both shared runners. The
+submitted receipts below establish progress, not closure of the following gaps.
+
+- R2-02 / BDS-02.02: iOS cancels on inactive/background but never reloads on
+  active; interruption before a snapshot returns can leave Loading indefinitely.
+  Its app-owned store also outlives a view whose onDisappear terminally disposes
+  the controller. Use view/scene ownership with cancel while inactive, one load
+  on active and terminal disposal only when the owner is removed. Apply equivalent
+  lifecycle ownership to Android and catalog. Keep the same controller/view on
+  ordinary background/resume. Add controlled blocked work on a worker plus a test
+  scheduler or explicit gates: cancel A, start B while A remains blocked, release
+  A's cleanup, request C while B is active, and verify no overlap or extra call;
+  then dispose while blocked and reject its completion and later loads. Reentrant
+  calls inside synchronous Unconfined fakes are insufficient. Add visible same-host
+  successive-update and background/resume regression tests on Android and iOS.
+- R2-04 / BDS-02.04: approve Backdrop `2.0.0-alpha03` as the pinned internal
+  implementation candidate under compile SDK 36, min API 28 and iOS 18. Do not
+  raise compile/target/min SDK or change libraries for the stable release now.
+  Retain this pin for subsequent glass implementation unless a reviewed change
+  supersedes it; release and physical qualification remain later gates. The
+  current Boolean policy tests do not render either glass state. Add deterministic
+  visible controls/fixtures that exercise the live surface and opaque fallback
+  on both hosts, with a patterned source that makes capture/effect behavior
+  observable. Verify capability-unavailable and effects-disabled fallback, and
+  test API 28 fallback. Keep renderer types internal. Retain the actual Coil PNG
+  success/error test; a fake image engine is not additionally required. Record
+  fresh screenshots tied to the tested revision and interaction state.
+- R2-07 / BDS-02.04: the catalog currently copies the production framework's
+  resource aggregation. Select and assemble each consumer's own aggregation;
+  exercise a catalog-only resource that cannot be supplied by the production
+  bundle. Derive the copy destination from the selected Xcode built product.
+  Checking only the last two path components is not containment: verify the exact
+  selected app descendant, reject escaping/symlinked destinations and missing or
+  empty required input, and test rejection before any deletion. Keep the accepted
+  external-build integration and scoped script-sandbox exception. Test Debug and
+  Release simulator plus unsigned device packaging for both consumers.
+- R2-03 / BDS-02.05: the Apple job's 'Select Xcode' step only prints versions.
+  Use `macos-26` ARM64 with explicitly selected Xcode 26.6, JDK 21, required
+  Android SDK components for the KMP project, and the configured iOS 26.5 runtime.
+  Preflight or install that runtime, then pass one explicit simulator selection
+  to all relevant commands; do not silently choose an older runtime. Preserve
+  the Linux x86_64 Android job, selecting exactly one ready emulator. Validate
+  each job's own setup before its commands using clean-environment fixtures;
+  substring matches anywhere in YAML do not prove job-local prerequisites.
+  Hosted and Linux execution may remain explicitly NOT_RUN without blocking
+  unrelated local fixes, but a structurally broken workflow is not accepted.
+  Include catalog Swift in iOS formatting checks and catalog Android in Android
+  Lint. The independent catalog Swift check currently reports three formatting
+  errors; fix those and demonstrate that the owning checks collect both hosts.
+- R2-05 / BDS-02.05: the test receipt checker counts skipped cases as executions,
+  accepts fabricated all-skipped suites, and deletes Android XML when the iOS
+  lane starts. Force actual target tests with cache reuse disabled for acceptance;
+  preserve both platform receipts. Subtract skips, reject failures/errors and
+  malformed/empty/stale/wrong-target receipts, and require nonzero real executions
+  per declared module. Retain uncovered-module detection and use negative fixtures
+  for all-skipped and stale cached results. Avoid deleting unrelated test results.
+
+Capture the final catalog after probes and lifecycle changes, not only an earlier
+launch. Keep safe insets and a readable diagnostic preview with one inset owner;
+the early Android capture overlaps status content and its small nested diagnostic
+is clipped. This is basic harness usability, not early implementation of BDS-04
+scaffolds or a claim of final visual parity. Expose all probe actions to the tests.
+
+Complete every independent correction in this batch and then stop. Do not relabel
+unrun cases as passing, alter downstream acceptance, or put external coordination
+identifiers or provenance into public evidence/commit metadata.
 
 ## Review amendment (2026-09-29)
 
@@ -302,6 +372,53 @@ production APK and Release `Branch.app` contain no catalog entries.
 
 Hosted CI is structurally validated by `tools/native-build/tests/test_ci_workflow.py`;
 no hosted runner was executed and no external runs were created.
+
+### Second corrective checkpoint record (2026-09-29)
+
+BDS-02.02: the shared `RuntimeController` keeps its serialized native-call mutex;
+the hosts now express the approved owner lifetime. Both Android hosts observe
+`ON_START`/`ON_STOP` through a retained `ViewModel` (production `RuntimeViewModel`,
+catalog `CatalogViewModel`); both iOS hosts own an app-lifetime store and call
+`load()` on active, `cancel()` while inactive/background, and `cancel()` (not
+dispose) on transient disappearance. Terminal disposal follows owner removal:
+Android `onCleared`, iOS store deinit. `CatalogRoot` receives its controller from
+the host instead of creating and disposing it inside the composition.
+
+Evidence for R2-02:
+
+- `:shared:app` commonTest adds a `BlockingRuntimeSource` that blocks a real worker
+  thread on a `MutableStateFlow` gate, driven by `runTest`/`backgroundScope`. It
+  cancels A, starts B while A holds the native call, releases A, requests C while B
+  is active and asserts exactly two calls; a second case disposes mid-call and
+  rejects its completion and later loads; a third asserts resume loads exactly once.
+- Android instrumentation: `RuntimeTest.homeResumesWithVisibleContentAfterBackground`
+  moves the activity to `CREATED` and back to `RESUMED` and re-observes the runtime
+  snapshot; `CatalogScreenTest.diagnosticUpdatesInPlaceAndResumesAfterBackground`
+  taps the catalog diagnostic control and asserts the rendered revision advances
+  from 0 to 1 in the same instance and still renders after a stop/start cycle.
+- iOS: `RuntimeControllerTests` adds `pauseThenResumeLoadsExactlyOnce`,
+  `cancelWhileBlockedThenResumeDoesNotOverlapOrDuplicate` (a real
+  `DispatchSemaphore` worker) and `disposeWhileBlockedRejectsCompletionAndLaterLoads`;
+  `RuntimeUITests.testHomeResumesWithVisibleContentAfterBackground` and
+  `CatalogUITests.testDiagnosticUpdatesInPlaceAndResumesAfterBackground` confirm the
+  same hosted instance resumes and updates after backgrounding. `diagnostic-next` is
+  a tagged catalog probe action that pauses and reloads the shared controller.
+
+Verification (Branch project directory, `cargo extbuild run --` router):
+
+| Command | Result |
+| --- | --- |
+| `:shared:app:testAndroidHostTest` | 14 tests, 0 failures/skips |
+| `:shared:app:iosSimulatorArm64Test` | 14 tests, 0 failures/skips |
+| `make test-android` | 4 instrumentation tests on the API 36 arm64 emulator, 0 failed |
+| `make test-catalog-android` | 4 instrumentation tests, 0 failed |
+| `make test-ios` | 8 XCTest + 2 UI tests, 0 failed |
+| `make test-catalog-ios` | 1 unit + 4 UI tests, 0 failed |
+| `make build-android`, `make build-catalog-android`, `make build-ios`, `make build-catalog-ios` | all compiled |
+
+`kotlinx-coroutines-test` is added only to `commonTest`; production configurations
+keep the existing coroutines resolution while the test configurations resolve
+1.10.2 with matching verification metadata.
 
 ## Sequence
 

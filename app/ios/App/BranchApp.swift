@@ -11,9 +11,11 @@ struct BranchApp: App {
             DiagnosticHost(controller: store.controller)
                 .ignoresSafeArea()
                 .task { store.load() }
-                .onDisappear { store.dispose() }
+                .onDisappear { store.cancel() }
                 .onChange(of: scenePhase) { _, phase in
-                    if phase != .active {
+                    if phase == .active {
+                        store.load()
+                    } else {
                         store.cancel()
                     }
                 }

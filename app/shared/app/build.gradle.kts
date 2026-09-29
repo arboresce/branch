@@ -29,6 +29,9 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.ui)
         }
-        commonTest.dependencies { implementation(kotlin("test")) }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.coroutines.test)
+        }
     }
 }
