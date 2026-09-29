@@ -19,6 +19,8 @@ containing this Makefile.
 | make build-android / build-ios | Verify settings, build/reuse verified native artifacts and build the debug app |
 | make build-release-android | Build the release Android app variant; no signing identity is invented |
 | make build-catalog-android / build-catalog-ios | Build the separate development catalog application (`ai.arboresce.branch.catalog`) for Android or the iOS simulator |
+| make build-release-catalog-ios | Build the catalog Release simulator framework and app with its own aggregated resources |
+| make build-catalog-ios-device | Build the catalog Release device framework and app unsigned where local tooling permits |
 | make dev-catalog-android / dev-catalog-ios | Build, install and launch the catalog app; not a production build |
 | make test-catalog-android / test-catalog-ios | Run the catalog host rendering tests on an emulator or simulator |
 | make build-release-ios | Build and link the Release simulator framework and app |

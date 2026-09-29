@@ -1,41 +1,81 @@
 import XCTest
 
 final class CatalogUITests: XCTestCase {
+    private func reveal(
+        _ app: XCUIApplication,
+        _ element: XCUIElement,
+        attempts: Int = 8
+    ) -> Bool {
+        for _ in 0..<attempts {
+            if element.exists {
+                return true
+            }
+            app.swipeUp()
+        }
+        return element.exists
+    }
+
+    private func element(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func revealHittable(
+        _ app: XCUIApplication,
+        _ element: XCUIElement,
+        attempts: Int = 8
+    ) -> Bool {
+        for _ in 0..<attempts {
+            if element.isHittable {
+                return true
+            }
+            app.swipeUp()
+        }
+        return element.isHittable
+    }
+
     func testCatalogRendersFixedFixtures() {
         let app = XCUIApplication()
         app.launch()
-        let title = app.descendants(matching: .any).matching(identifier: "catalog-title").firstMatch
-        XCTAssertTrue(title.waitForExistence(timeout: 30))
-        let item = app.descendants(matching: .any).matching(identifier: "catalog-item-1").firstMatch
-        XCTAssertTrue(item.waitForExistence(timeout: 30))
+        XCTAssertTrue(element(app, "catalog-title").waitForExistence(timeout: 30))
+        XCTAssertTrue(reveal(app, element(app, "catalog-item-1")))
+    }
+
+    func testCatalogOnlyResourceRenders() {
+        let app = XCUIApplication()
+        app.launch()
+        XCTAssertTrue(element(app, "catalog-resource").waitForExistence(timeout: 30))
+    }
+
+    func testGlassProbeRendersLiveSurfaceAndBothFallbacks() {
+        let app = XCUIApplication()
+        app.launch()
+        for tag in ["glass-surface", "glass-fallback-capability", "glass-fallback-effects"] {
+            XCTAssertTrue(reveal(app, element(app, tag)), tag)
+        }
     }
 
     func testNavigationProbeTransitionsBetweenTwoEntries() {
         let app = XCUIApplication()
         app.launch()
-        let push = app.descendants(matching: .any).matching(identifier: "nav3-push").firstMatch
-        XCTAssertTrue(push.waitForExistence(timeout: 30))
+        let push = element(app, "nav3-push")
+        XCTAssertTrue(revealHittable(app, push))
         push.tap()
-        let detail = app.descendants(matching: .any).matching(identifier: "nav3-detail").firstMatch
-        XCTAssertTrue(detail.waitForExistence(timeout: 30))
+        XCTAssertTrue(element(app, "nav3-detail").waitForExistence(timeout: 30))
     }
 
     func testImageProbeResolvesDeterministicSuccessAndError() {
         let app = XCUIApplication()
         app.launch()
-        let error = app.descendants(matching: .any).matching(identifier: "image-error").firstMatch
-        XCTAssertTrue(error.waitForExistence(timeout: 30))
-        let success = app.descendants(matching: .any).matching(identifier: "image-success").firstMatch
-        XCTAssertTrue(success.waitForExistence(timeout: 30))
+        XCTAssertTrue(reveal(app, element(app, "image-error")))
+        XCTAssertTrue(reveal(app, element(app, "image-success")))
     }
 
     func testDiagnosticUpdatesInPlaceAndResumesAfterBackground() {
         let app = XCUIApplication()
         app.launch()
-        let snapshot = app.descendants(matching: .any).matching(identifier: "runtime-snapshot")
-            .firstMatch
+        let snapshot = element(app, "runtime-snapshot")
         XCTAssertTrue(snapshot.waitForExistence(timeout: 30))
-        let next = app.descendants(matching: .any).matching(identifier: "diagnostic-next").firstMatch
+        let next = element(app, "diagnostic-next")
         XCTAssertTrue(next.waitForExistence(timeout: 30))
         next.tap()
         let updated = XCTNSPredicateExpectation(
@@ -44,8 +84,7 @@ final class CatalogUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter().wait(for: [updated], timeout: 15), .completed)
         XCUIDevice.shared.press(.home)
         app.activate()
-        let resumed = app.descendants(matching: .any).matching(identifier: "runtime-snapshot")
-            .firstMatch
+        let resumed = element(app, "runtime-snapshot")
         XCTAssertTrue(resumed.waitForExistence(timeout: 30))
         XCTAssertTrue(resumed.label.contains("\"revision\""))
     }

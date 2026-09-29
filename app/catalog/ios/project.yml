@@ -39,11 +39,18 @@ targets:
           - ${BRANCH_COMPOSE_BUNDLE}
         script: |
           set -euo pipefail
-          case "${BRANCH_COMPOSE_BUNDLE}" in
-            */compose-resources/composeResources) ;;
-            *) echo "Refusing unbounded Compose resource destination" >&2; exit 1 ;;
-          esac
+          app="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
+          expected="${app}/compose-resources/composeResources"
+          if [ "${BRANCH_COMPOSE_BUNDLE}" != "${expected}" ]; then
+            echo "Refusing unbounded Compose resource destination" >&2
+            exit 1
+          fi
+          if [ -L "${BRANCH_COMPOSE_BUNDLE}" ]; then
+            echo "Refusing symlinked Compose resource destination" >&2
+            exit 1
+          fi
           [ -d "${BRANCH_COMPOSE_RESOURCES}" ] || { echo "Missing shared Compose resources" >&2; exit 1; }
+          [ -n "$(ls -A "${BRANCH_COMPOSE_RESOURCES}")" ] || { echo "Empty shared Compose resources" >&2; exit 1; }
           rm -rf "${BRANCH_COMPOSE_BUNDLE}"
           mkdir -p "${BRANCH_COMPOSE_BUNDLE}"
           cp -R "${BRANCH_COMPOSE_RESOURCES}/." "${BRANCH_COMPOSE_BUNDLE}/"

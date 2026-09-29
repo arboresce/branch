@@ -79,7 +79,8 @@ def apple_environment(env: dict, configuration: str = "debug", sdk: str = "simul
     app = contracts()["application"]
     architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
     flavor = "debug" if configuration == "debug" else "release"
-    resources, bundle = compose_resource_paths(configuration, sdk, "Branch")
+    resources = compose_resource_source("shared/xc-framework", sdk)
+    bundle = compose_resource_destination(ios_app_product(configuration, sdk, "Branch"))
     env.update(
         BRANCH_IOS_MINIMUM_OS=contracts()["native-artifacts"]["ios"]["minimum_os"],
         BRANCH_BUNDLE_ID=app["bundle_id"],
@@ -125,30 +126,52 @@ _SHARED_TEST_TARGETS = {
 }
 
 
+def compose_resource_source(module: str, sdk: str) -> Path:
+    architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
+    return (
+        output()
+        / f"gradle/{module}/kotlin-multiplatform-resources/aggregated-resources/{architecture}/composeResources"
+    )
+
+
+def ios_app_product(configuration: str, sdk: str, app_name: str) -> Path:
+    platform = "iphonesimulator" if sdk == "simulator" else "iphoneos"
+    return (
+        output()
+        / "ios/derived/Build/Products"
+        / f"{configuration.capitalize()}-{platform}"
+        / f"{app_name}.app"
+    )
+
+
+def compose_resource_destination(app_product: Path) -> Path:
+    return app_product / "compose-resources" / "composeResources"
+
+
 def compose_resource_paths(
     configuration: str,
     sdk: str,
     app_name: str,
+    module: str,
 ) -> tuple[Path, Path]:
-    architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
-    source = (
-        output()
-        / f"gradle/shared/xc-framework/kotlin-multiplatform-resources/aggregated-resources/{architecture}/composeResources"
-    )
-    destination = (
-        output()
-        / "ios/derived/Build/Products"
-        / f"{configuration.capitalize()}-{'iphonesimulator' if sdk == 'simulator' else 'iphoneos'}"
-        / f"{app_name}.app/compose-resources/composeResources"
-    )
-    return source, destination
+    product = ios_app_product(configuration, sdk, app_name)
+    return compose_resource_source(module, sdk), compose_resource_destination(product)
 
 
-def verify_compose_resources(source: Path, destination: Path) -> None:
-    if destination.parts[-2:] != ("compose-resources", "composeResources"):
-        raise ValueError(f"Unbounded Compose resource destination: {destination}")
-    if not source.is_dir():
+def verify_compose_resources(source: Path, app_product: Path) -> Path:
+    products = (output() / "ios/derived/Build/Products").resolve()
+    if app_product.suffix != ".app" or app_product.is_symlink():
+        raise ValueError(f"Unbounded Compose resource destination: {app_product}")
+    if products not in app_product.resolve().parents:
+        raise ValueError(f"Compose resource destination escapes built products: {app_product}")
+    destination = compose_resource_destination(app_product)
+    if destination.is_symlink():
+        raise ValueError(f"Compose resource destination is a symlink: {destination}")
+    if source.is_symlink() or not source.is_dir():
         raise ValueError(f"Missing shared Compose resource bundle: {source}")
+    if not any(source.iterdir()):
+        raise ValueError(f"Empty shared Compose resource bundle: {source}")
+    return destination
 
 
 def common_test_directories() -> set[str]:
@@ -194,7 +217,7 @@ def build(platform: str, configuration: str = "debug", sdk: str = "simulator") -
         gradle(
             env,
             f":shared:xc-framework:link{configuration.capitalize()}Framework{architecture}",
-            f":shared:xc-framework:assemble{architecture[0].upper()}{architecture[1:]}MainResources",
+            f":shared:xc-framework:{architecture}AggregateResources",
         )
         project = output() / "ios/project"
         project.mkdir(parents=True, exist_ok=True)
@@ -212,7 +235,8 @@ def build(platform: str, configuration: str = "debug", sdk: str = "simulator") -
             "generic/platform=iOS Simulator" if sdk == "simulator" else "generic/platform=iOS"
         )
         verify_compose_resources(
-            Path(env["BRANCH_COMPOSE_RESOURCES"]), Path(env["BRANCH_COMPOSE_BUNDLE"])
+            Path(env["BRANCH_COMPOSE_RESOURCES"]),
+            ios_app_product(configuration, sdk, "Branch"),
         )
         xcode(
             env,
@@ -449,7 +473,8 @@ def catalog_apple_environment(
     app = contracts()["application"]
     architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
     flavor = "debug" if configuration == "debug" else "release"
-    resources, bundle = compose_resource_paths(configuration, sdk, "BranchCatalog")
+    resources = compose_resource_source("catalog/xc-framework", sdk)
+    bundle = compose_resource_destination(ios_app_product(configuration, sdk, "BranchCatalog"))
     env.update(
         BRANCH_IOS_MINIMUM_OS=contracts()["native-artifacts"]["ios"]["minimum_os"],
         BRANCH_APP_VERSION=app["version"],
@@ -482,7 +507,7 @@ def build_catalog(platform: str, configuration: str = "debug", sdk: str = "simul
         gradle(
             env,
             f":catalog:xc-framework:link{configuration.capitalize()}Framework{architecture}",
-            f":shared:xc-framework:assemble{architecture[0].upper()}{architecture[1:]}MainResources",
+            f":catalog:xc-framework:{architecture}AggregateResources",
         )
         project = catalog_project()
         native.run(
@@ -498,7 +523,8 @@ def build_catalog(platform: str, configuration: str = "debug", sdk: str = "simul
             "generic/platform=iOS Simulator" if sdk == "simulator" else "generic/platform=iOS"
         )
         verify_compose_resources(
-            Path(env["BRANCH_COMPOSE_RESOURCES"]), Path(env["BRANCH_COMPOSE_BUNDLE"])
+            Path(env["BRANCH_COMPOSE_RESOURCES"]),
+            ios_app_product(configuration, sdk, "BranchCatalog"),
         )
         xcode(
             env,

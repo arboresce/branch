@@ -15,6 +15,7 @@ kotlin {
         namespace = "ai.arboresce.branch.catalog"
         compileSdk = nativeSettings.getProperty("compileSdk").toInt()
         minSdk = nativeSettings.getProperty("minSdk").toInt()
+        androidResources.enable = true
         withHostTest {}
     }
     iosArm64()
@@ -29,6 +30,7 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
+            implementation(compose.components.resources)
             implementation(libs.navigation3.ui)
             implementation(libs.backdrop)
             implementation(libs.coil.compose)
@@ -38,4 +40,8 @@ kotlin {
             implementation(libs.serialization.json)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "ai.arboresce.branch.catalog.resources"
 }

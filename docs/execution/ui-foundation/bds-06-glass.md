@@ -3,6 +3,10 @@
 Status: planned; no implementation checkpoint is complete.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-08, BUI-04.
+Dependency decision: retain Backdrop `2.0.0-alpha03` under compile SDK 36 as
+specified in BUI-08. A stable-version SDK upgrade is not required or authorized
+by this unit. Complete all capability, fallback and physical qualification gates;
+return new incompatibilities for review instead of replacing the renderer silently.
 Prerequisites: [BDS-05](bds-05-navigation.md).
 Next action: inspect current authority and working-tree state, then execute BDS-06.01 after prerequisites are verified.
 
@@ -85,4 +89,3 @@ Open failures/limits: implementation not started.
 ## Sequence
 
 [BDS-00](bds-00-contracts.md) · [BDS-01](bds-01-native-build.md) · [BDS-02](bds-02-shared-hosts.md) · [BDS-03](bds-03-theme.md) · [BDS-04](bds-04-primitives.md) · [BDS-05](bds-05-navigation.md) · [BDS-06](bds-06-glass.md) · [BDS-07](bds-07-editing.md) · [BDS-08](bds-08-controls.md) · [BDS-09](bds-09-patterns.md) · [BDS-10](bds-10-platform.md) · [BDS-11](bds-11-media.md) · [BDS-12](bds-12-simulator-qualification.md) · [BDS-13](bds-13-device-qualification.md)
-

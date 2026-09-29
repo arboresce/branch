@@ -39,13 +39,30 @@ class CatalogProbesTest {
 
     @Test
     fun glassFallbackIsSelectedWhenEffectsAreDisabled() {
-        assertFalse(glassEffectsAvailable(effectsEnabled = false))
+        assertFalse(glassEffectsAvailable(effectsEnabled = false, capabilityAvailable = true))
     }
 
     @Test
     fun glassFallbackIsSelectedWhenCapabilityIsUnavailable() {
         assertFalse(glassEffectsAvailable(effectsEnabled = true, capabilityAvailable = false))
         assertTrue(glassEffectsAvailable(effectsEnabled = true, capabilityAvailable = true))
+    }
+
+    @Test
+    fun api28SelectsTheOpaqueFallback() {
+        assertFalse(glassCapabilityAvailable(28))
+        assertFalse(
+            glassEffectsAvailable(
+                effectsEnabled = true,
+                capabilityAvailable = glassCapabilityAvailable(28),
+            )
+        )
+    }
+
+    @Test
+    fun api31AndNewerAllowTheLiveSurface() {
+        assertTrue(glassCapabilityAvailable(31))
+        assertTrue(glassCapabilityAvailable(36))
     }
 
     @Test

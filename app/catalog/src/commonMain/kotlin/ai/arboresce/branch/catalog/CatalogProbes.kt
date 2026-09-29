@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -97,36 +99,39 @@ fun CatalogNavigationProbe() {
     }
 }
 
+/** The lowest API whose platform render effect the internal glass adapter may use. */
+const val GLASS_MIN_BLUR_API: Int = 31
+
+fun glassCapabilityAvailable(sdkInt: Int): Boolean = sdkInt >= GLASS_MIN_BLUR_API
+
 fun glassEffectsAvailable(
     effectsEnabled: Boolean,
-    capabilityAvailable: Boolean = true,
+    capabilityAvailable: Boolean,
 ): Boolean = effectsEnabled && capabilityAvailable
 
 @Composable
 fun CatalogGlassProbe(
-    effectsEnabled: Boolean = true,
-    capabilityAvailable: Boolean = true,
+    effectsEnabled: Boolean,
+    capabilityAvailable: Boolean,
+    tag: String,
 ) {
     if (!glassEffectsAvailable(effectsEnabled, capabilityAvailable)) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .background(Color(0xFF22242A))
-                .testTag("glass-fallback"),
+                .background(Color(0xFF22242A)),
         ) {
-            BasicText("Opaque glass fallback", Modifier.padding(12.dp))
+            BasicText(
+                "Opaque glass fallback",
+                Modifier.padding(12.dp).testTag(tag),
+            )
         }
         return
     }
     val backdrop = rememberLayerBackdrop()
-    Box(Modifier.fillMaxWidth().height(64.dp).testTag("glass-surface")) {
-        Box(
-            Modifier
-                .matchParentSize()
-                .layerBackdrop(backdrop)
-                .background(Color(0xFF3150A0)),
-        )
+    Box(Modifier.fillMaxWidth().height(64.dp)) {
+        PatternedSource(Modifier.matchParentSize().layerBackdrop(backdrop))
         Box(
             Modifier
                 .matchParentSize()
@@ -135,6 +140,42 @@ fun CatalogGlassProbe(
                     shape = { RoundedCornerShape(12.dp) },
                     effects = { blur(8f) },
                 ),
+        )
+        BasicText(
+            "Live glass surface",
+            Modifier.padding(12.dp).testTag(tag),
+        )
+    }
+}
+
+@Composable
+private fun PatternedSource(modifier: Modifier) {
+    Row(modifier) {
+        listOf(
+            Color(0xFFD32F2F),
+            Color(0xFF388E3C),
+            Color(0xFF1976D2),
+            Color(0xFFFFC107),
+        ).forEach { color ->
+            Box(Modifier.weight(1f).fillMaxHeight().background(color))
+        }
+    }
+}
+
+/** Renders the live surface plus both readable fallback branches deterministically. */
+@Composable
+fun CatalogGlassGallery() {
+    Column {
+        CatalogGlassProbe(effectsEnabled = true, capabilityAvailable = true, tag = "glass-surface")
+        CatalogGlassProbe(
+            effectsEnabled = true,
+            capabilityAvailable = false,
+            tag = "glass-fallback-capability",
+        )
+        CatalogGlassProbe(
+            effectsEnabled = false,
+            capabilityAvailable = true,
+            tag = "glass-fallback-effects",
         )
     }
 }
@@ -170,7 +211,7 @@ fun CatalogImageProbe() {
 fun CatalogProbes() {
     Column {
         CatalogNavigationProbe()
-        CatalogGlassProbe()
+        CatalogGlassGallery()
         CatalogImageProbe()
     }
 }

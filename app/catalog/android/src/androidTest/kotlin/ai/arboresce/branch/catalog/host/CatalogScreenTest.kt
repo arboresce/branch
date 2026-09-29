@@ -48,6 +48,18 @@ class CatalogScreenTest {
     }
 
     @Test
+    fun catalogOnlyResourceRenders() {
+        compose.onNodeWithTag("catalog-resource").assertExists()
+    }
+
+    @Test
+    fun glassProbeRendersLiveSurfaceAndBothFallbacks() {
+        compose.onNodeWithTag("glass-surface").assertExists()
+        compose.onNodeWithTag("glass-fallback-capability").assertExists()
+        compose.onNodeWithTag("glass-fallback-effects").assertExists()
+    }
+
+    @Test
     fun diagnosticUpdatesInPlaceAndResumesAfterBackground() {
         compose.waitUntil(20_000) { diagnosticText()?.contains("\"revision\"") == true }
         compose.onNodeWithTag("diagnostic-next").performClick()

@@ -1,10 +1,10 @@
 # BDS-02: Reactive shared hosts and verification harness
 
-Status: BDS-02.02 corrected; BDS-02.04/.05 pending, independent acceptance pending, 2026-09-29.
+Status: BDS-02.02 and BDS-02.04 corrected; BDS-02.05 pending, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
-Next action: complete BDS-02.04/.05, then stop for independent acceptance before BDS-03.
+Next action: complete BDS-02.05, then stop for independent acceptance before BDS-03.
 
 ## Scope
 
@@ -52,7 +52,7 @@ No new service contract is owned by this unit.
 | BDS-02.01 | complete | Introduce compiling module boundaries | V0, V2 |
 | BDS-02.02 | complete | Complete lifecycle resumption and race evidence | V2, V3 |
 | BDS-02.03 | complete | Launch the independent deterministic catalog | V2, V3 |
-| BDS-02.04 | planned | Qualify glass and consumer resource delivery | V2, V3 |
+| BDS-02.04 | complete | Qualify glass and consumer resource delivery | V2, V3 |
 | BDS-02.05 | planned | Close runner, CI and catalog-check gaps | V0, V2, V3 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
@@ -119,7 +119,7 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: R2-02 corrected with owner-scoped resumption and controlled blocked-work tests. R2-03 through R2-05 and R2-07 remain open. Hosted CI, Linux execution and physical qualification remain NOT_RUN. The second-review Backdrop decision supersedes the submitted pending-decision text.
+Open failures/limits: R2-02, R2-04 and R2-07 corrected; R2-03 and R2-05 remain open. Hosted CI, Linux execution, API 28 device execution and physical qualification remain NOT_RUN. The Backdrop pin decision is recorded in BDS-06 and BUI-08.
 
 ## Second-review amendment (2026-09-29)
 
@@ -419,6 +419,43 @@ Verification (Branch project directory, `cargo extbuild run --` router):
 `kotlinx-coroutines-test` is added only to `commonTest`; production configurations
 keep the existing coroutines resolution while the test configurations resolve
 1.10.2 with matching verification metadata.
+
+### Second corrective checkpoint record: glass and resource delivery (2026-09-29)
+
+BDS-02.04: the catalog now renders deterministic glass states instead of only
+asserting a Boolean. `CatalogGlassGallery` renders a live surface with a patterned
+four-colour source (so capture/effect behavior is observable) and both readable
+fallbacks: capability-unavailable and effects-disabled. `glassCapabilityAvailable`
+maps platform blur support (`API >= 31`) rather than trusting the library minimum
+SDK, so `API 28` selects the opaque fallback. Renderer types stay internal to the
+probe. Resource delivery is now consumer-specific: the production app aggregates
+`:shared:xc-framework` resources while the catalog aggregates `:catalog:xc-framework`
+resources, and the catalog declares the catalog-only
+`ai.arboresce.branch.catalog.resources` package. Both iOS applications derive the
+copy destination from the selected Xcode built product (`ios_app_product` plus
+`compose-resources/composeResources`); the Python preflight rejects missing, empty
+and symlinked sources, escaping/non-`.app` products and symlinked destinations,
+and the Xcode phase compares the destination with `${TARGET_BUILD_DIR}/${WRAPPER_NAME}`
+before any deletion. `iosSimulatorArm64AggregateResources`/`iosArm64AggregateResources`
+replaced the stale `assemble...MainResources` call so the aggregation path is
+regenerated rather than reused.
+
+Verification (Branch project directory, `cargo extbuild run --` router):
+
+| Command | Result |
+| --- | --- |
+| `:catalog:iosSimulatorArm64Test` / `:catalog:testAndroidHostTest` | glass capability, API 28/31 policy, navigation and image cases pass |
+| `make test-catalog-ios` | 1 unit + 6 UI tests, 0 failed |
+| `make test-catalog-android` | 6 instrumentation tests on the API 36 arm64 emulator, 0 failed |
+| `make build-ios`, `make build-release-ios`, `make build-ios-device` | production bundles contain only `ai.arboresce.branch.ui.resources` |
+| `make build-catalog-ios`, `make build-release-catalog-ios`, `make build-catalog-ios-device` | catalog bundles contain `ai.arboresce.branch.ui.resources` and `ai.arboresce.branch.catalog.resources` |
+| `pytest tools/native-build/tests` | resource-containment, empty/missing/symlink/escape rejection cases pass |
+
+Fresh captures were recorded at the corrected working tree with the live surface,
+both fallbacks and the catalog-only resource on screen: `/tmp/pi-bds0204-catalog-ios.png`
+and `/tmp/pi-bds0204-catalog-android.png` (workstation convenience paths, not
+portable artifacts). API 28 execution on a real API 28 emulator remains NOT_RUN;
+the API 28 fallback is exercised at the capability-policy level, not on that image.
 
 ## Sequence
 
