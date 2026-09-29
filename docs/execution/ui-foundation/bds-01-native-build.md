@@ -1,10 +1,10 @@
 # BDS-01: Native integrity and build profiles
 
-Status: BDS-01.01 third-review correction committed, independent acceptance pending, 2026-09-29.
+Status: BDS-01.01 has two bounded fourth-review corrections; other checkpoints retained complete, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-01, BUI-02.
 Prerequisites: [BDS-00](bds-00-contracts.md).
-Next action: await independent acceptance at the acceptance gate; retain the other native checkpoints.
+Next action: complete the fourth-review corrections in BDS-01.01; retain the other native checkpoints.
 
 ## Scope
 
@@ -34,7 +34,7 @@ No new service contract is owned by this unit.
 
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
-| BDS-01.01 | complete | Close remaining effective native-input gaps | V1 |
+| BDS-01.01 | planned | Close remaining effective native-input gaps | V1 |
 | BDS-01.02 | complete | Close manifest integrity gap | V1 |
 | BDS-01.03 | complete | Correct explicit build/test profile routing | V1, V2 |
 | BDS-01.04 | complete | Verify locked environment freshness | V1, V6 |
@@ -95,7 +95,35 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; BDS-01.02 retained complete; BDS-01.01 corrected at `beefd3d`, BDS-01.03 at `eaf92a5`, BDS-01.04 at `7d3ca29` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: R3-01 corrected pending independent acceptance. F08/F09 and NDK host matching are retained. Linux producer execution and hosted CI remain NOT_RUN; host-tag tests are not Linux execution evidence.
+Open failures/limits: R4-01/02 below remain open. Retain selector/linker/config-env rejection, host rustflags, actual subprocess checks, F08/F09 and NDK host matching. Linux producer execution and hosted CI remain NOT_RUN.
+
+## Fourth-review amendment (2026-09-29)
+
+Most of the default-producer correction at `debc46a` is retained. Finish only:
+
+- R4-01: `_HOST_TOOLING_PROFILE_ENV` currently allows every value of
+  `CARGO_PROFILE_DEV_DEBUG`; independent probes accepted `2` and an invalid string,
+  kept identity unchanged and forwarded both to build subprocesses. The approved
+  exception in [native artifacts](../../spec/native-artifacts.md) is now exact:
+  unset or `line-tables-only` only. Reject all other values before cache lookup,
+  including when a valid cached cohort is already present. Preserve the key-only
+  diagnostic and all other profile/selector/linker rejection. Tests must exercise
+  unset, the approved value, another valid debug level, empty and invalid values,
+  plus the actual subprocess environment for the supported cases. Do not alter
+  host router configuration or broaden the exception.
+- R4-02: repository `.cargo/config.toml`/`config` still enter the raw input-file
+  hash in addition to normalized semantic configuration. Changing only repository
+  `build.target-dir` changes identity despite an unchanged semantic dictionary.
+  Remove that duplicate raw-configuration hashing while retaining semantic
+  normalization/rejection at every applicable level. Prove output-only equivalence
+  for repository, ancestor and Cargo-home fixtures, and prove a real rustflag
+  change at those levels still changes identity. This is unnecessary cache
+  invalidation, not evidence of incorrect application outputs.
+
+The submitted default producers and 135-test suite passed locally. Their success
+does not cover the two demonstrated cases. No new native architecture, target,
+dependency, wrapper support or checkpoint identifier is required. Earlier records
+below remain submitted historical evidence; this amendment controls the next work.
 
 ## Third-review amendment (2026-09-29)
 

@@ -22,7 +22,8 @@ Cohort identity describes the effective build. `CARGO_PROFILE_RELEASE_OPT_LEVEL`
 the one supported release-profile override; unset normalizes to `3`, the supported
 values are `0`, `1`, `2`, `3`, `s` and `z`, and other values are rejected.
 Any other `CARGO_PROFILE_*` override, including the development profile used by
-host bindgen, is rejected before cache lookup rather than leaking into the producer.
+host bindgen, is rejected before cache lookup, except the exact host-tool setting
+defined below, rather than leaking into the producer.
 The supported producer uses the pinned default Rust toolchain and platform-selected
 linkers. Explicit `RUSTC`, `RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`, their Cargo
 aliases and caller/configuration-selected target linkers are unsupported and must
@@ -53,6 +54,20 @@ or category without echoing values. Never persist Cargo `[env]` values or creden
 in cohort manifests. Normalize output/cache-only Cargo settings out of semantic
 identity. Regression tests must observe both identity decisions and the actual
 environment/arguments passed to host and target build/bindgen subprocesses.
+
+One bounded host-tool exception is approved: an unset `CARGO_PROFILE_DEV_DEBUG`
+or the exact value `line-tables-only` is permitted. That value changes debug
+information in the development bindgen executable, which is not a cohort output;
+the published native libraries use the release profile and generated bindings
+remain governed by their inputs. It is nonsemantic for cohort identity and may
+be forwarded to host tooling. Every other value, including empty or invalid
+values, fails before cache lookup with a key-only diagnostic. This is not a
+general exemption for the variable or other development-profile settings.
+
+Apply configuration normalization at repository, ancestor and Cargo-home levels.
+Hash supported semantic configuration once; do not also hash a repository Cargo
+configuration file's raw bytes and thereby reintroduce excluded output/cache or
+registry settings. Meaningful rustflag changes must still invalidate the cohort.
 
 Gradle versions live in app/gradle/libs.versions.toml and the wrapper properties. Resolution
 locks and verification-metadata.xml are committed. contracts/native-settings.properties

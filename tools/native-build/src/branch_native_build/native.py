@@ -28,6 +28,7 @@ _TOOL_SELECTORS = frozenset(
 _PROFILE_ENV_PREFIX = "CARGO_PROFILE_"
 _SUPPORTED_PROFILE_ENV = frozenset({"CARGO_PROFILE_RELEASE_OPT_LEVEL"})
 _HOST_TOOLING_PROFILE_ENV = frozenset({"CARGO_PROFILE_DEV_DEBUG"})
+_HOST_TOOLING_DEV_DEBUG = frozenset({"line-tables-only"})
 _UNSUPPORTED_ENV = frozenset(
     {
         "CARGO_BUILD_RUSTC",
@@ -56,7 +57,11 @@ def capture(*args: str) -> str:
 
 def _validated_environment() -> dict:
     for key in sorted(os.environ):
-        if key in _SUPPORTED_PROFILE_ENV or key in _HOST_TOOLING_PROFILE_ENV:
+        if key in _HOST_TOOLING_PROFILE_ENV:
+            if os.environ[key] not in _HOST_TOOLING_DEV_DEBUG:
+                raise ValueError(f"Unsupported build-affecting override: {key}")
+            continue
+        if key in _SUPPORTED_PROFILE_ENV:
             continue
         if key.startswith(_PROFILE_ENV_PREFIX):
             raise ValueError(f"Unsupported build-affecting override: {key}")
@@ -207,10 +212,6 @@ def identity(platform: str) -> dict:
             "tools/native-build/src/branch_native_build/config.py",
         )
     )
-    for candidate in (".cargo/config.toml", ".cargo/config"):
-        config_file = ROOT / candidate
-        if config_file.is_file():
-            files.append(config_file)
     if any(p.is_symlink() for p in files):
         raise ValueError("Native sources must not be symlinks")
     inputs = {str(p.relative_to(ROOT)): digest(p.read_bytes()) for p in sorted(set(files))}

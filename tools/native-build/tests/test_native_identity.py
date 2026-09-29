@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -165,11 +166,43 @@ def test_caller_target_linkers_are_rejected(tmp_path, monkeypatch, name):
         identity("ios")
 
 
-def test_host_tooling_dev_debug_is_nonsemantic(tmp_path, monkeypatch):
+def test_host_tooling_dev_debug_unset_is_nonsemantic(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    baseline = identity("ios")
+    assert "CARGO_PROFILE_DEV_DEBUG" not in os.environ
+    assert identity("ios") == baseline
+
+
+def test_host_tooling_dev_debug_approved_value_is_nonsemantic(tmp_path, monkeypatch):
     identity = prepare(tmp_path, monkeypatch)
     baseline = identity("ios")
     monkeypatch.setenv("CARGO_PROFILE_DEV_DEBUG", "line-tables-only")
     assert identity("ios") == baseline
+
+
+@pytest.mark.parametrize("value", ["2", "0", "none", "", "line-tables-only ", "invalid"])
+def test_other_dev_debug_values_are_rejected_without_echoing_values(tmp_path, monkeypatch, value):
+    identity = prepare(tmp_path, monkeypatch)
+    monkeypatch.setenv("CARGO_PROFILE_DEV_DEBUG", value)
+    with pytest.raises(ValueError) as error:
+        identity("ios")
+    assert "CARGO_PROFILE_DEV_DEBUG" in str(error.value)
+    if value:
+        assert value not in str(error.value)
+
+
+def test_rejected_dev_debug_cannot_reuse_a_valid_cached_cohort(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    baseline = identity("ios")
+    cached = native.location("ios", baseline)
+    cached.mkdir(parents=True)
+    (cached / "library").write_bytes(b"native fixture")
+    (cached / "manifest.json").write_text(
+        json.dumps({"identity": baseline, "outputs": {"library": config.digest(b"native fixture")}})
+    )
+    monkeypatch.setenv("CARGO_PROFILE_DEV_DEBUG", "2")
+    with pytest.raises(ValueError, match="CARGO_PROFILE_DEV_DEBUG"):
+        native.check("ios")
 
 
 def test_retained_host_and_target_rustflags_change_identity(tmp_path, monkeypatch):
@@ -301,6 +334,37 @@ def test_cargo_config_output_routing_is_not_semantic(tmp_path, monkeypatch):
     assert identity("ios") == baseline
 
 
+def test_repository_cargo_config_output_routing_is_not_semantic(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    baseline = identity("ios")
+    (tmp_path / ".cargo").mkdir()
+    (tmp_path / ".cargo/config.toml").write_text('[build]\ntarget-dir = "elsewhere"\n')
+    assert identity("ios") == baseline
+
+
+def test_ancestor_cargo_config_output_routing_is_not_semantic(tmp_path, monkeypatch):
+    base = tmp_path / "level"
+    base.mkdir()
+    (base / ".cargo").mkdir()
+    (base / ".cargo/config.toml").write_text('[build]\ntarget-dir = "elsewhere"\n')
+    identity = prepare(tmp_path, monkeypatch, root=base / "repo")
+    baseline = identity("ios")
+    (base / ".cargo/config.toml").write_text('[build]\ntarget-dir = "other-elsewhere"\n')
+    assert identity("ios") == baseline
+
+
+def test_repository_semantic_cargo_config_changes_identity(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    baseline = identity("ios")
+    (tmp_path / ".cargo").mkdir()
+    (tmp_path / ".cargo/config.toml").write_text('[build]\nrustflags = ["-Copt-level=1"]\n')
+    changed = identity("ios")
+    assert changed["toolchain"]["cargo_config"]["repository"]["build"] == {
+        "rustflags": ["-Copt-level=1"]
+    }
+    assert native.location("ios", changed) != native.location("ios", baseline)
+
+
 def test_changed_profile_cannot_reuse_a_stale_cohort(tmp_path, monkeypatch):
     identity = prepare(tmp_path, monkeypatch)
     baseline = identity("ios")
@@ -404,3 +468,34 @@ def test_actual_ios_subprocesses_share_the_resolved_policy(tmp_path, monkeypatch
             assert env["CARGO_TARGET_AARCH64_APPLE_IOS_RUSTFLAGS"] == "-Cdebug-assertions=on"
         assert "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER" not in env
     assert saw_target
+
+
+def test_build_rejects_other_dev_debug_before_any_subprocess(tmp_path, monkeypatch):
+    prepare(tmp_path, monkeypatch)
+    record = []
+    monkeypatch.setattr(native, "run", recording_runner(record))
+    monkeypatch.setenv("CARGO_PROFILE_DEV_DEBUG", "2")
+    with pytest.raises(ValueError, match="CARGO_PROFILE_DEV_DEBUG"):
+        native.build("ios")
+    assert record == []
+
+
+def test_actual_subprocesses_omit_an_unset_dev_debug(tmp_path, monkeypatch):
+    prepare(tmp_path, monkeypatch)
+    record = []
+    monkeypatch.setattr(native, "run", recording_runner(record))
+    native.build("ios")
+    cargo_envs = [env for args, env in record if args[:2] in {("cargo", "build"), ("cargo", "run")}]
+    assert cargo_envs
+    assert all("CARGO_PROFILE_DEV_DEBUG" not in env for env in cargo_envs)
+
+
+def test_actual_subprocesses_forward_the_approved_dev_debug(tmp_path, monkeypatch):
+    prepare(tmp_path, monkeypatch)
+    monkeypatch.setenv("CARGO_PROFILE_DEV_DEBUG", "line-tables-only")
+    record = []
+    monkeypatch.setattr(native, "run", recording_runner(record))
+    native.build("ios")
+    cargo_envs = [env for args, env in record if args[:2] in {("cargo", "build"), ("cargo", "run")}]
+    assert cargo_envs
+    assert all(env["CARGO_PROFILE_DEV_DEBUG"] == "line-tables-only" for env in cargo_envs)
