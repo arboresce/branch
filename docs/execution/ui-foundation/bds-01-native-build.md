@@ -1,10 +1,10 @@
 # BDS-01: Native integrity and build profiles
 
-Status: BDS-01.01 has two bounded fourth-review corrections; other checkpoints retained complete, 2026-09-29.
+Status: BDS-01.01 fourth-review corrections committed at `486b3b3`, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-01, BUI-02.
 Prerequisites: [BDS-00](bds-00-contracts.md).
-Next action: complete the fourth-review corrections in BDS-01.01; retain the other native checkpoints.
+Next action: await independent acceptance at the acceptance gate; retain the other native checkpoints.
 
 ## Scope
 
@@ -34,7 +34,7 @@ No new service contract is owned by this unit.
 
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
-| BDS-01.01 | planned | Close remaining effective native-input gaps | V1 |
+| BDS-01.01 | complete | Close remaining effective native-input gaps | V1 |
 | BDS-01.02 | complete | Close manifest integrity gap | V1 |
 | BDS-01.03 | complete | Correct explicit build/test profile routing | V1, V2 |
 | BDS-01.04 | complete | Verify locked environment freshness | V1, V6 |
@@ -93,9 +93,9 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; BDS-01.02 retained complete; BDS-01.01 corrected at `beefd3d`, BDS-01.03 at `eaf92a5`, BDS-01.04 at `7d3ca29` on 2026-09-29.
+Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; BDS-01.02 retained complete; BDS-01.01 corrected at `beefd3d`, BDS-01.03 at `eaf92a5`, BDS-01.04 at `7d3ca29` on 2026-09-29; BDS-01.01 fourth-review corrected at `486b3b3` on 2026-09-29 (public plan/spec amendments at `c9d98cb`).
 Current implementation slice: none.
-Open failures/limits: R4-01/02 below remain open. Retain selector/linker/config-env rejection, host rustflags, actual subprocess checks, F08/F09 and NDK host matching. Linux producer execution and hosted CI remain NOT_RUN.
+Open failures/limits: R4-01/02 corrected at `486b3b3`, pending independent acceptance. Retain selector/linker/config-env rejection, host rustflags, actual subprocess checks, F08/F09 and NDK host matching. Linux producer execution and hosted CI remain NOT_RUN.
 
 ## Fourth-review amendment (2026-09-29)
 

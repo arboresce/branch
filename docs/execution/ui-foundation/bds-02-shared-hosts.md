@@ -1,10 +1,10 @@
 # BDS-02: Reactive shared hosts and verification harness
 
-Status: BDS-02.04 accepted; BDS-02.02/.05 require fourth-review harness corrections, 2026-09-29.
+Status: BDS-02.04 accepted; BDS-02.02/.05 fourth-review corrections committed at `ae7e20d`/`bf4bef5`, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
-Next action: complete BDS-02.02/.05 fourth-review corrections and return for acceptance before BDS-03 or assets.
+Next action: await independent acceptance before BDS-03 or assets; retain .01/.03/.04.
 
 ## Scope
 
@@ -50,10 +50,10 @@ No new service contract is owned by this unit.
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
 | BDS-02.01 | complete | Introduce compiling module boundaries | V0, V2 |
-| BDS-02.02 | planned | Complete lifecycle resumption and race evidence | V2, V3 |
+| BDS-02.02 | complete | Complete lifecycle resumption and race evidence | V2, V3 |
 | BDS-02.03 | complete | Launch the independent deterministic catalog | V2, V3 |
 | BDS-02.04 | complete | Qualify glass and consumer resource delivery | V2, V3 |
-| BDS-02.05 | planned | Close bounded emulator cleanup gap | V0, V2, V3 |
+| BDS-02.05 | complete | Close bounded emulator cleanup gap | V0, V2, V3 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -117,9 +117,9 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29.
+Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29; BDS-02.02 fourth-review corrected at `ae7e20d`, BDS-02.05 at `bf4bef5` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: R4-03/04/07 harness corrections below remain open. R3-03/04/05 are accepted within the prototype boundary; host disposal code is retained. Hosted CI, Linux execution, API 28 runtime execution and physical qualification remain NOT_RUN.
+Open failures/limits: R4-03/04/07 corrected at `ae7e20d`/`bf4bef5`, pending independent acceptance. R3-03/04/05 are accepted within the prototype boundary; host disposal code is retained. R4-05/06 remain assigned to BDS-04.06/BDS-12.04. Hosted CI, Linux execution, API 28 runtime execution and physical qualification remain NOT_RUN.
 
 ## Fourth-review amendment (2026-09-29)
 
