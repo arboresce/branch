@@ -1,10 +1,10 @@
 # BDS-02: Reactive shared hosts and verification harness
 
-Status: BDS-02.04 accepted; BDS-02.02/.05 fourth-review corrections committed at `ae7e20d`/`bf4bef5`, independent acceptance pending, 2026-09-29.
+Status: complete; BDS-02.01-.05 fifth-review corrections verified at `3372d37`/`a21b406`, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
-Next action: await independent acceptance before BDS-03 or assets; retain .01/.03/.04.
+Next action: await independent acceptance before BDS-03 or assets; retain all BDS-02 checkpoints.
 
 ## Scope
 
@@ -117,9 +117,111 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29; BDS-02.02 fourth-review corrected at `ae7e20d`, BDS-02.05 at `bf4bef5` on 2026-09-29.
+Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29; BDS-02.02 fourth-review corrected at `ae7e20d`, BDS-02.05 at `bf4bef5` on 2026-09-29; BDS-02.02 fifth-review R5-01 corrected at `3372d37` and R5-02 at `a21b406` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: R4-03/04/07 corrected at `ae7e20d`/`bf4bef5`, pending independent acceptance. R3-03/04/05 are accepted within the prototype boundary; host disposal code is retained. R4-05/06 remain assigned to BDS-04.06/BDS-12.04. Hosted CI, Linux execution, API 28 runtime execution and physical qualification remain NOT_RUN.
+Open failures/limits: R5-01/R5-02 corrected at `3372d37`/`a21b406`, pending independent acceptance. R4-03/07 accepted at `cc9b138`. R4-05/06 remain assigned to BDS-04.06/BDS-12.04. Hosted CI, Linux execution, API 28 runtime execution and physical qualification remain NOT_RUN.
+
+## Fifth-review amendment (2026-09-29)
+
+Accept the effective iOS owner-disposal regression at `ae7e20d`: the isolated
+deinit-removal fixture uses identical tests and fails on stale revision, phase and
+extra-call assertions; the unchanged normal catalog independently passes two unit
+and six UI tests. Preserve the injection seam and disposal implementation.
+
+Accept BDS-02.05 at `bf4bef5`: bounded ADB/graceful/terminate/kill waits, owned-child
+reaping, borrowed-device preservation and primary-failure reporting are verified.
+Independent Python tests pass. The first independent Android catalog invocation
+failed device-property discovery before application tests, retained its primary
+failure and cleaned up its emulator. A fresh normal invocation executed all eight
+tests and completed with exit 0 and no remaining owned emulator. Preserve both
+receipts; the first run is not eight passing tests. No further cleanup architecture
+change is required by this review.
+
+Finish BDS-02.02 only:
+
+- R5-01 (remaining R4-04): `CoroutineScope(CONTROLLER_EXECUTOR + Job())` serializes
+  its launched continuations, but the lifecycle calls still execute in plain
+  `runBlocking`. An isolated copy adding only a dispatcher-identity assertion to
+  the first scenario fails at runtime: the orchestration is outside the controller
+  executor. Run the whole asynchronous scenario, controller calls, assertions and
+  controller cleanup on that same executor; the approved minimal direction is
+  `runBlocking(CONTROLLER_EXECUTOR)`, retaining a separate worker for the blocking
+  source. Do not introduce production locking or change runtime policy.
+- The same correction must finish bounded teardown. `awaitTermination()` currently
+  performs an unbounded `Job.join()` outside the scenario timeout. Give cleanup
+  its own explicit deadline (25 seconds, above the existing 20-second worker
+  bound; use shorter injected limits in negative fixtures), release gates before joining, and preserve the
+  original assertion/timeout when teardown also fails. Cover the negative-injection
+  scenarios with an outer bound too. Verify elapsed time through cleanup, not only
+  through the caught assertion, and prove all owned work has ended.
+- In the blocked-disposal scenario, assert terminal phase and no new source calls
+  after the released work and controller continuation have settled. Current
+  assertions precede the join and can miss a later publication. Do not cancel an
+  externally owned scope before checking that disposal itself rejects later loads;
+  reserve test-owned scope shutdown for cleanup. Use an awaited bounded completion
+  barrier, not a fixed delay. Preserve ordinary background/resume behavior.
+- R5-02: remove the newly introduced explanatory KDoc/comments/docstrings from
+  `RuntimeControllerTest.kt`, `CatalogOwnerTests.swift`, `mobile.py` and
+  `test_emulator_cleanup.py`, as required by repository guidance. Put any necessary
+  rationale in the existing docs; preserve licenses/directives. This is source
+  hygiene within this corrective batch, not a reopening of accepted emulator or
+  owner-disposal behavior and not a request for a new general-purpose checker.
+
+Definition of green: context assertions pass on both shared targets; reverting
+the orchestration to plain `runBlocking` fails those assertions in an isolated
+fixture. Start/completion failure injections and cleanup deadlines are exercised
+with measured total elapsed bounds and no leaked workers or external process
+kills. The disposal assertions run after completion and reject a deliberately
+allowed late publication/later load. Normal shared/catalog checks and scoped
+format/lint checks pass; source convention review is clean. Use isolated fixtures
+outside tracked source for deliberate mutations and distinguish caught expected
+assertions from an overall failing test command.
+
+Eleven initial foundation checkpoints are retained. These corrections do not
+authorize assets, BDS-03, dependency changes or changes to the accepted renderer,
+native producer or resource installer. Earlier execution receipts remain historical
+submissions; this amendment controls remaining work.
+
+### Fifth-review correction record (2026-09-29)
+
+R5-01, commit `3372d37`: the controlled lifecycle scenarios now run the complete
+scenario, controller calls, assertions and controller cleanup on
+`runBlocking(CONTROLLER_EXECUTOR)`, while the blocking native fake keeps its
+dedicated `NATIVE_WORKER`. Cleanup releases gates before joining, bounds the join
+to a 25-second deadline and preserves the original assertion/timeout when teardown
+also fails. The blocked-disposal scenario now releases the worker, awaits a bounded
+completion barrier over the controller-owned scope, and only then asserts terminal
+loading, the single source call and later-load rejection; the externally owned
+scope is cancelled in cleanup, not before the disposal assertions. Start and
+completion failure injections keep 5-second waits; the cleanup negative fixture
+injects a 300 ms cleanup bound.
+
+R5-02, commit `a21b406`: the fourth-review explanatory KDoc, docstrings and inline
+comments were removed from `RuntimeControllerTest.kt`, `CatalogOwnerTests.swift`,
+`mobile.py` and `test_emulator_cleanup.py`; rationale stays in this document. No
+behavior or accepted checkpoint changed.
+
+Verification (Branch project directory, `cargo extbuild run --` router):
+
+| Command | Result |
+| --- | --- |
+| `make test-shared` | Android host 17 and iOS simulator 17 executed tests, zero failures/skips; context placement asserted on both targets |
+| `make test-catalog-ios` | 2 unit (including `CatalogOwnerTests`) + 6 UI tests, zero failures |
+| `make test-catalog-android` | first run: 7/8, one `CatalogScreenTest` failed with `Activity never becomes requested state "[DESTROYED]"`; fresh rerun 8/8, zero failures |
+| `make check-tools` | 158 Python tests, ruff and contracts pass |
+| `make check-ios` / `make check-android` | ktlint, Swift style and Android Lint pass; Rust, Python and native checks pass |
+
+Isolated mutations outside tracked source (Android host, `cargo extbuild run --`):
+plain `runBlocking` orchestration fails 5/17 tests on the controller-executor
+identity assertion (source SHA-256 `f357965a...`); neutralized
+`RuntimeController.dispose()` fails the disposal test on the late `Content`
+publication. Normal tracked source was not modified by either fixture.
+
+Measured test wall times from the retained Android receipt: missing-start 0.504 s
+(500 ms bound), withheld-completion 0.511 s (500 ms bound), cleanup-deadline
+0.310 s (300 ms injected bound), blocked-disposal 0.004 s. Hosted CI, Linux
+execution, actual API 28 emulator execution and physical qualification remain
+NOT_RUN. The first Android catalog failure is retained and is not a passing run.
 
 ## Fourth-review amendment (2026-09-29)
 
