@@ -1,10 +1,10 @@
 # BDS-01: Native integrity and build profiles
 
-Status: correction complete, independent acceptance pending, 2026-09-29.
+Status: second-review correction complete, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-01, BUI-02.
 Prerequisites: [BDS-00](bds-00-contracts.md).
-Next action: await Codex gate arbi-6v62.19 acceptance before BDS-02-dependent downstream work.
+Next action: await independent acceptance; retain the accepted routing and environment checks.
 
 ## Scope
 
@@ -34,7 +34,7 @@ No new service contract is owned by this unit.
 
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
-| BDS-01.01 | complete | Complete effective native configuration policy | V1 |
+| BDS-01.01 | complete | Close remaining effective native-input gaps | V1 |
 | BDS-01.02 | complete | Close manifest integrity gap | V1 |
 | BDS-01.03 | complete | Correct explicit build/test profile routing | V1, V2 |
 | BDS-01.04 | complete | Verify locked environment freshness | V1, V6 |
@@ -95,7 +95,31 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; BDS-01.02 retained complete; BDS-01.01 corrected at `beefd3d`, BDS-01.03 at `eaf92a5`, BDS-01.04 at `7d3ca29` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: F01/F08/F09 corrected; stable Backdrop pins are documented in BDS-02. Linux x86_64 producer execution is not run on this macOS host; command-construction/import tests plus the macOS host build cover the producer. Hosted CI remains unexecuted. Independent Codex acceptance remains open at arbi-6v62.19.
+Open failures/limits: F08/F09 accepted; R2-01 corrected in the second-review batch. Linux producer execution and hosted CI remain NOT_RUN; host-tag tests are not Linux execution evidence.
+
+## Second-review amendment (2026-09-29)
+
+R2-01 / BDS-01.01: `CARGO_BUILD_RUSTC`, `CARGO_BUILD_TARGET` and
+`CARGO_INCREMENTAL` still reach producer subprocesses without affecting identity
+or being rejected. Only the repository-local Cargo configuration is inspected;
+Cargo also reads ancestor and selected Cargo-home configuration. Compiler/wrapper
+path strings alone do not identify the executable actually used.
+
+Apply the clarified policy in [native artifacts](../../spec/native-artifacts.md).
+Use one effective-input resolver before cache lookup and subprocess construction,
+including host bindgen compilation. Reject unsupported compiler/default-target and
+profile aliases, model any retained flags and wrappers by their effective meaning,
+and account for applicable configuration without copying credentials or host
+configuration into the repository. Keep build-output routing operational. Reject
+unsupported NDK host architectures and mismatched prebuilt directories; do not
+fall back to the only directory when it belongs to another host.
+
+Acceptance requires negative tests for the three demonstrated aliases, ancestor
+and Cargo-home semantic config, actual compiler/wrapper identity or rejection,
+host-target overrides and mismatched NDK hosts. Check actual subprocess arguments
+and environment as well as hash changes. Preserve all previously passing integrity,
+deployment-target, routing and exact Python readiness checks. Linux execution
+remains separately reported if no Linux environment is available.
 
 ## Review amendment (2026-09-29)
 
@@ -197,6 +221,32 @@ Verification on 2026-09-29 (Branch project directory, all exit 0):
 `make check-tools` now performs `uv lock --check`, `uv sync --check` and the exact
 version preflight. The Linux producer path is covered by `test_routing` host-tag
 cases and the macOS host build; it is not executed on Linux in this batch.
+
+### Second corrective checkpoint record (2026-09-29)
+
+BDS-01.01: one effective-input resolver now rejects `CARGO_BUILD_RUSTC`,
+`CARGO_BUILD_RUSTC_WRAPPER`, `CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER`,
+`CARGO_BUILD_TARGET` and `CARGO_INCREMENTAL` before cache lookup, resolves
+`RUSTC`/`RUSTC_WRAPPER`/`RUSTC_WORKSPACE_WRAPPER` to the real executable behind
+the selection, and evaluates repository, ancestor and selected Cargo-home
+configuration. Only the `build`, `profile`, `target` and `env` Cargo tables
+participate; credential, registry and alias tables are excluded and never
+copied. Unsupported `build.rustc`/`build.rustc-wrapper`/`build.target`/
+`build.incremental` and any `profile.release` setting are rejected. The Android
+producer records the NDK-selected linkers in identity from the same resolver used
+for subprocess construction, and a mismatched NDK host prebuilt directory now
+fails instead of falling back to another host's directory.
+
+Verification (Branch project directory, `cargo extbuild run --` router, exit 0):
+
+| Command | Result |
+| --- | --- |
+| `pytest tools/native-build/tests` | 98 passed; added alias-rejection, real-executable resolution, ancestor/Cargo-home config, credential-exclusion and NDK-host mismatch cases |
+| `ruff check` / `ruff format --check tools/native-build` | clean |
+
+Cohort locations change because the identity now includes the Cargo configuration
+and producer linkers; existing cohorts are not silently reused. No Linux producer
+execution is claimed.
 
 ## Sequence
 

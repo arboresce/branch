@@ -6,16 +6,19 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 from .config import ROOT, configure, contracts, digest, output
 
 SCHEMA_VERSION = 2
 _OPT_LEVELS = {"0", "1", "2", "3", "s", "z"}
-_BUILD_ENV_INPUTS = (
+_FLAG_INPUTS = (
     "RUSTFLAGS",
     "CARGO_ENCODED_RUSTFLAGS",
     "CARGO_BUILD_RUSTFLAGS",
+)
+_TOOL_SELECTORS = (
     "RUSTC",
     "RUSTC_WRAPPER",
     "RUSTC_WORKSPACE_WRAPPER",
@@ -23,6 +26,19 @@ _BUILD_ENV_INPUTS = (
 _TARGET_ENV_SUFFIXES = ("LINKER", "RUSTFLAGS")
 _PROFILE_ENV_PREFIX = "CARGO_PROFILE_RELEASE_"
 _SUPPORTED_PROFILE_ENV = frozenset({"CARGO_PROFILE_RELEASE_OPT_LEVEL"})
+_UNSUPPORTED_ENV = frozenset(
+    {
+        "CARGO_BUILD_RUSTC",
+        "CARGO_BUILD_RUSTC_WRAPPER",
+        "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER",
+        "CARGO_BUILD_TARGET",
+        "CARGO_INCREMENTAL",
+    }
+)
+_CARGO_SEMANTIC_TABLES = ("build", "profile", "target", "env")
+_UNSUPPORTED_CARGO_BUILD_KEYS = frozenset(
+    {"rustc", "rustc-wrapper", "rustc-workspace-wrapper", "target", "incremental"}
+)
 
 
 def run(*args: str, env: dict | None = None, cwd: Path = ROOT) -> None:
@@ -37,12 +53,29 @@ def _validated_environment() -> dict:
     for key in sorted(os.environ):
         if key.startswith(_PROFILE_ENV_PREFIX) and key not in _SUPPORTED_PROFILE_ENV:
             raise ValueError(f"Unsupported build-affecting override: {key}")
+        if key in _UNSUPPORTED_ENV:
+            raise ValueError(f"Unsupported build-affecting override: {key}")
     return dict(os.environ)
+
+
+def _resolve_tool(value: str, key: str) -> str:
+    candidate = Path(value).expanduser()
+    if not candidate.is_absolute():
+        located = shutil.which(value)
+        if located is None:
+            raise ValueError(f"Unresolved build tool {key}: {value}")
+        candidate = Path(located)
+    if not candidate.exists():
+        raise ValueError(f"Unresolved build tool {key}: {value}")
+    return str(candidate.resolve())
 
 
 def _effective_overrides(platform: str) -> dict:
     environment = _validated_environment()
-    overrides = {key: environment[key] for key in _BUILD_ENV_INPUTS if key in environment}
+    overrides = {key: environment[key] for key in _FLAG_INPUTS if key in environment}
+    for selector in _TOOL_SELECTORS:
+        if selector in environment:
+            overrides[selector] = _resolve_tool(environment[selector], selector)
     config = contracts()["native-artifacts"]
     for target in config[platform]["targets"]:
         prefix = f"CARGO_TARGET_{target.upper().replace('-', '_')}_"
@@ -51,6 +84,53 @@ def _effective_overrides(platform: str) -> dict:
             if key in environment:
                 overrides[key] = environment[key]
     return overrides
+
+
+def _cargo_config_candidates(root: Path) -> list[tuple[str, Path]]:
+    cargo_home = Path(os.environ.get("CARGO_HOME") or os.path.expanduser("~/.cargo"))
+    candidates = []
+    for name in ("config.toml", "config"):
+        candidates.append(("cargo-home", cargo_home / name))
+    for name in ("config.toml", "config"):
+        candidates.append(("repository", root / ".cargo" / name))
+    for index, directory in enumerate(root.parents, start=1):
+        for name in ("config.toml", "config"):
+            candidates.append((f"ancestor/{index}", directory / ".cargo" / name))
+    return candidates
+
+
+def _cargo_configuration(root: Path) -> dict:
+    semantic: dict = {}
+    for label, path in _cargo_config_candidates(root):
+        if not path.is_file():
+            continue
+        try:
+            data = tomllib.loads(path.read_text())
+        except tomllib.TOMLDecodeError as error:
+            raise ValueError(f"Invalid Cargo configuration: {label}") from error
+        build = data.get("build")
+        if isinstance(build, dict):
+            unsupported = sorted(key for key in _UNSUPPORTED_CARGO_BUILD_KEYS if key in build)
+            if unsupported:
+                raise ValueError(f"Unsupported Cargo configuration build.{unsupported[0]}: {label}")
+        profile = data.get("profile")
+        if isinstance(profile, dict) and "release" in profile:
+            raise ValueError(f"Unsupported Cargo configuration profile.release: {label}")
+        entry = {table: data[table] for table in _CARGO_SEMANTIC_TABLES if table in data}
+        if entry:
+            semantic[label] = entry
+    return semantic
+
+
+def _android_linkers(config: dict) -> dict:
+    ndk = _ndk_toolchain(config["android"]["ndk"])
+    linkers = {}
+    for target in config["android"]["targets"]:
+        triplet = (
+            "aarch64-linux-android" if target.startswith("aarch64") else "x86_64-linux-android"
+        )
+        linkers[target] = str(ndk / f"{triplet}{config['android']['minimum_api']}-clang")
+    return linkers
 
 
 def sdk() -> Path:
@@ -84,8 +164,6 @@ def _ndk_toolchain(ndk_version: str) -> Path:
     if preferred.is_dir():
         return preferred / "bin"
     available = sorted(p.name for p in prebuilt.iterdir()) if prebuilt.is_dir() else []
-    if len(available) == 1:
-        return prebuilt / available[0] / "bin"
     raise ValueError(
         f"Android NDK {ndk_version} lacks a host toolchain for {_ndk_prebuilt_tag()}; "
         f"available: {available or 'none'}"
@@ -123,6 +201,7 @@ def identity(platform: str) -> dict:
         "rustc": capture("rustc", "-Vv"),
         "opt_level": _release_opt_level(),
         "overrides": _effective_overrides(platform),
+        "cargo_config": _cargo_configuration(ROOT),
     }
     if platform == "ios":
         toolchain["xcode"] = capture("xcodebuild", "-version")
@@ -131,9 +210,9 @@ def identity(platform: str) -> dict:
             config["native-artifacts"]["ios"]["minimum_os"]
         )
     else:
-        toolchain["ndk"] = (
-            sdk() / "ndk" / config["native-artifacts"]["android"]["ndk"] / "source.properties"
-        ).read_text()
+        android = config["native-artifacts"]["android"]
+        toolchain["ndk"] = (sdk() / "ndk" / android["ndk"] / "source.properties").read_text()
+        toolchain["linkers"] = _android_linkers(config["native-artifacts"])
     return {
         "schema_version": SCHEMA_VERSION,
         "platform": platform,
@@ -222,16 +301,10 @@ def build(platform: str) -> Path:
             for target in config[platform]["targets"]:
                 native_env = env.copy()
                 if platform == "android":
-                    ndk = _ndk_toolchain(config["android"]["ndk"])
-                    triplet = (
-                        "aarch64-linux-android"
-                        if target.startswith("aarch64")
-                        else "x86_64-linux-android"
-                    )
-                    compiler = ndk / f"{triplet}{config['android']['minimum_api']}-clang"
-                    native_env[f"CARGO_TARGET_{target.upper().replace('-', '_')}_LINKER"] = str(
-                        compiler
-                    )
+                    linkers = _android_linkers(config)
+                    native_env[f"CARGO_TARGET_{target.upper().replace('-', '_')}_LINKER"] = linkers[
+                        target
+                    ]
                 run(
                     "cargo",
                     "build",

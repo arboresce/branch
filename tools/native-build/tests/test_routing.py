@@ -58,3 +58,36 @@ def test_host_toolchain_resolution_is_explicit():
         native._ndk_prebuilt_tag("win32")
     with pytest.raises(ValueError, match="Unsupported native host"):
         native._host_library_name("win32")
+
+
+def test_mismatched_ndk_prebuilt_directory_is_rejected(tmp_path, monkeypatch):
+    prebuilt = tmp_path / "ndk/29.0.0/toolchains/llvm/prebuilt"
+    (prebuilt / "windows-x86_64/bin").mkdir(parents=True)
+    monkeypatch.setattr(native, "sdk", lambda: tmp_path)
+    with pytest.raises(ValueError, match="lacks a host toolchain"):
+        native._ndk_toolchain("29.0.0")
+
+
+def test_matching_ndk_prebuilt_directory_is_selected(tmp_path, monkeypatch):
+    host = native._ndk_prebuilt_tag()
+    expected = tmp_path / f"ndk/29.0.0/toolchains/llvm/prebuilt/{host}/bin"
+    expected.mkdir(parents=True)
+    monkeypatch.setattr(native, "sdk", lambda: tmp_path)
+    assert native._ndk_toolchain("29.0.0") == expected
+
+
+def test_android_linkers_use_the_resolved_ndk_toolchain(tmp_path, monkeypatch):
+    host = native._ndk_prebuilt_tag()
+    bindir = tmp_path / f"ndk/29.0.0/toolchains/llvm/prebuilt/{host}/bin"
+    bindir.mkdir(parents=True)
+    monkeypatch.setattr(native, "sdk", lambda: tmp_path)
+    config = {
+        "android": {
+            "ndk": "29.0.0",
+            "minimum_api": "28",
+            "targets": ["aarch64-linux-android", "x86_64-linux-android"],
+        }
+    }
+    linkers = native._android_linkers(config)
+    assert linkers["aarch64-linux-android"] == str(bindir / "aarch64-linux-android28-clang")
+    assert linkers["x86_64-linux-android"] == str(bindir / "x86_64-linux-android28-clang")

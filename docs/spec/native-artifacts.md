@@ -19,8 +19,9 @@ aborts installation. Writes stage beside the final cohort and rename only after
 verification. Existing mismatched cohorts are never silently repaired.
 
 Cohort identity describes the effective build. `CARGO_PROFILE_RELEASE_OPT_LEVEL` is
-the one supported release-profile override; unset normalizes to `3` and other values
-are rejected. Any other `CARGO_PROFILE_RELEASE_*` override (`LTO`, `DEBUG`, `PANIC`
+the one supported release-profile override; unset normalizes to `3`, the supported
+values are `0`, `1`, `2`, `3`, `s` and `z`, and other values are rejected.
+Any other `CARGO_PROFILE_RELEASE_*` override (`LTO`, `DEBUG`, `PANIC`
 and similar) is rejected before cache lookup rather than leaking into the producer.
 Recorded semantic inputs include compiler and wrapper selection (`RUSTC`,
 `RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`), flag variables (`RUSTFLAGS`,
@@ -29,6 +30,18 @@ overrides and an existing `.cargo/config.toml`. Output and cache locations such 
 `CARGO_TARGET_DIR`, `BRANCH_BUILD_DIR` and `BRANCH_NATIVE` are explicitly not
 semantic inputs. Identity and subprocess execution share the same validated policy;
 the whole host environment is never hashed and credentials are never printed.
+
+The supported-input list is closed for code-generation semantics, not merely a
+list of values to hash while inheriting all others. Compiler/default-target aliases
+including `CARGO_BUILD_RUSTC` and `CARGO_BUILD_TARGET`, and unmodeled incremental,
+profile or host-target overrides must fail before cache lookup. A supported wrapper
+or compiler selection must identify the actual executable/toolchain, not only its
+path string. Applicable repository, ancestor and selected Cargo-home configuration
+must be evaluated for build-affecting settings and normalized or rejected by the
+same resolver. Do not copy those files or hash credential/registry configuration.
+Output/cache routing remains nonsemantic. Producer-selected linker settings must
+be the settings represented by identity. The host bindgen build follows this same
+policy, and unsupported NDK host architectures/prebuilt directories fail explicitly.
 
 Gradle versions live in app/gradle/libs.versions.toml and the wrapper properties. Resolution
 locks and verification-metadata.xml are committed. contracts/native-settings.properties
