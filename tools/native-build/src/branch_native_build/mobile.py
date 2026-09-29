@@ -161,6 +161,21 @@ def compose_resource_paths(
     return compose_resource_source(module, sdk), compose_resource_destination(product)
 
 
+def _contains_symlink(root: Path) -> bool:
+    for directory, directories, files in os.walk(root, followlinks=False):
+        for name in directories + files:
+            if Path(directory, name).is_symlink():
+                return True
+    return False
+
+
+def _contains_regular_file(root: Path) -> bool:
+    for _, _, files in os.walk(root, followlinks=False):
+        if files:
+            return True
+    return False
+
+
 def verify_compose_resources(source: Path, app_product: Path) -> Path:
     products = (output() / "ios/derived/Build/Products").resolve()
     if app_product.suffix != ".app" or app_product.is_symlink():
@@ -168,11 +183,18 @@ def verify_compose_resources(source: Path, app_product: Path) -> Path:
     if products not in app_product.resolve().parents:
         raise ValueError(f"Compose resource destination escapes built products: {app_product}")
     destination = compose_resource_destination(app_product)
-    if destination.is_symlink():
-        raise ValueError(f"Compose resource destination is a symlink: {destination}")
+    current = destination
+    while True:
+        if current.is_symlink():
+            raise ValueError(f"Compose resource destination is a symlink: {current}")
+        if current == app_product:
+            break
+        current = current.parent
     if source.is_symlink() or not source.is_dir():
         raise ValueError(f"Missing shared Compose resource bundle: {source}")
-    if not any(source.iterdir()):
+    if _contains_symlink(source):
+        raise ValueError(f"Symlinked shared Compose resource: {source}")
+    if not _contains_regular_file(source):
         raise ValueError(f"Empty shared Compose resource bundle: {source}")
     return destination
 

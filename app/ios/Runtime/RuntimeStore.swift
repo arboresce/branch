@@ -9,9 +9,6 @@ final class RustRuntimeSource: AppRuntimeSource {
     }
 }
 
-/// App-lifetime owner of the shared controller. Inactive/background cancels; active
-/// resumes with one load; a transient view disappearance only cancels. Disposal happens
-/// once, when this owner is removed.
 @MainActor
 final class RuntimeStore: ObservableObject {
     nonisolated(unsafe) let controller: AppRuntimeController =

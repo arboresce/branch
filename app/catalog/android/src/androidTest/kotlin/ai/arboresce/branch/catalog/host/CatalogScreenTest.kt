@@ -1,15 +1,23 @@
 package ai.arboresce.branch.catalog.host
 
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.lifecycle.Lifecycle
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 
 class CatalogScreenTest {
     @get:Rule val compose = createAndroidComposeRule<CatalogActivity>()
@@ -57,6 +65,41 @@ class CatalogScreenTest {
         compose.onNodeWithTag("glass-surface").assertExists()
         compose.onNodeWithTag("glass-fallback-capability").assertExists()
         compose.onNodeWithTag("glass-fallback-effects").assertExists()
+        val list = compose.onNodeWithTag("catalog-list")
+        for (tag in listOf("glass-surface", "glass-fallback-capability", "glass-fallback-effects")) {
+            list.performScrollToNode(hasTestTag("$tag-box"))
+            captureScreen(tag)
+        }
+    }
+
+    private fun captureScreen(name: String) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val bitmap = instrumentation.uiAutomation.takeScreenshot()
+        val directory = instrumentation.targetContext.getExternalFilesDir(null) ?: return
+        File(directory, "$name.png").outputStream().use {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+    }
+
+    @Test
+    fun fallbackSurfaceRendersTheReadableBackground() {
+        val list = compose.onNodeWithTag("catalog-list")
+        list.performScrollToNode(hasTestTag("glass-fallback-capability-box"))
+        val pixel =
+            compose
+                .onNodeWithTag("glass-fallback-capability-box")
+                .captureToImage()
+                .toPixelMap()[2, 2]
+        assertEquals(Color(0xFF22242A), pixel)
+    }
+
+    @Test
+    fun liveSurfaceUsesHostCapabilityInsteadOfTheFallback() {
+        val list = compose.onNodeWithTag("catalog-list")
+        list.performScrollToNode(hasTestTag("glass-surface-box"))
+        val pixel =
+            compose.onNodeWithTag("glass-surface-box").captureToImage().toPixelMap()[2, 2]
+        assertNotEquals(Color(0xFF22242A), pixel)
     }
 
     @Test

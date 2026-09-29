@@ -91,6 +91,12 @@ stale environments with actionable diagnostics and do not repair them. New
 checks must work from an independent checkout using documented public tools and
 committed resources. A declaration of `commonTest` without executed tests fails.
 
+Resource installation validates the selected app and every existing destination
+ancestor before deletion/copy. A lexical app-relative path is insufficient when
+an intermediate directory is a symlink. Reject symlinked source trees, escaping
+destinations and required inputs without regular resource files. The command that
+mutates the bundle must enforce this policy, with outside-app sentinel tests.
+
 ## BUI-03: Reactive shared root
 
 Both hosts render shared loading, sanitized error and content presentation.
@@ -230,6 +236,15 @@ from the library's minimum SDK alone. Unknown/unavailable capability selects a
 readable fallback. Accessibility preferences take precedence over decorative
 effects; unavailable preference signals remain unknown. Provide deterministic
 catalog overrides that cannot bypass capability/accessibility protections.
+
+The compatibility catalog obtains capability from its host; a policy function
+used only in tests does not qualify that path. Android below API 31 selects opaque
+for this pinned probe. Deterministic fixtures may disable capability/effects but
+must not force unsupported effects on. Assert readable rendered fallback and that
+the unsupported effect is not created. BDS-02 uses both available simulator hosts
+and injected unavailable capability; actual API 28 emulator execution is a separate
+mandatory BDS-12 qualification case, not inferred from a Boolean test or a newer
+emulator. Physical performance remains BDS-13.
 Simulator profile/capture tests do not qualify physical performance.
 
 ## BUI-09: OS integration

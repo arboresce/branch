@@ -8,11 +8,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
-/**
- * Renders the shared root and ties the controller to the hosting lifecycle: the owner
- * cancels while stopped and resumes with one load when started again. Disposal stays
- * with the controller's owner ([RuntimeViewModel]); a transient stop is not terminal.
- */
 @Composable
 fun RuntimeHost(controller: RuntimeController) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle

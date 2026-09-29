@@ -11,9 +11,6 @@ private final class FakeRuntimeSource: AppRuntimeSource {
     }
 }
 
-/// A source whose snapshot blocks a worker thread until the test releases it, so the
-/// controller's serialization and cancellation behavior is exercised with real
-/// in-flight work rather than synchronous reentrancy.
 private final class BlockingRuntimeSource: AppRuntimeSource {
     private let semaphore = DispatchSemaphore(value: 0)
     private let lock = NSLock()

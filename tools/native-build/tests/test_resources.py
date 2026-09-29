@@ -1,6 +1,11 @@
+import os
+import subprocess
+
 import pytest
 
-from branch_native_build import mobile
+from branch_native_build import config, mobile
+
+INSTALLER = config.ROOT / "scripts/install-compose-resources.sh"
 
 
 def test_source_aggregation_is_consumer_specific(tmp_path, monkeypatch):
@@ -71,6 +76,14 @@ def test_empty_resource_bundle_is_rejected(tmp_path, monkeypatch):
         mobile.verify_compose_resources(make_source(tmp_path, empty=True), app_product(tmp_path))
 
 
+def test_resource_bundle_without_regular_files_is_rejected(tmp_path, monkeypatch):
+    monkeypatch.setenv("BRANCH_BUILD_DIR", str(tmp_path))
+    source = make_source(tmp_path, empty=True)
+    (source / "nested").mkdir()
+    with pytest.raises(ValueError, match="Empty shared Compose resource"):
+        mobile.verify_compose_resources(source, app_product(tmp_path))
+
+
 def test_destination_outside_the_built_products_is_rejected(tmp_path, monkeypatch):
     monkeypatch.setenv("BRANCH_BUILD_DIR", str(tmp_path))
     source = make_source(tmp_path)
@@ -97,6 +110,18 @@ def test_symlinked_destination_is_rejected(tmp_path, monkeypatch):
         mobile.verify_compose_resources(source, product)
 
 
+def test_intermediate_destination_symlink_is_rejected(tmp_path, monkeypatch):
+    monkeypatch.setenv("BRANCH_BUILD_DIR", str(tmp_path))
+    source = make_source(tmp_path)
+    product = app_product(tmp_path)
+    outside = tmp_path / "outside"
+    (outside / "composeResources").mkdir(parents=True)
+    product.mkdir(parents=True)
+    (product / "compose-resources").symlink_to(outside)
+    with pytest.raises(ValueError, match="symlink"):
+        mobile.verify_compose_resources(source, product)
+
+
 def test_symlinked_source_is_rejected(tmp_path, monkeypatch):
     monkeypatch.setenv("BRANCH_BUILD_DIR", str(tmp_path))
     real = make_source(tmp_path)
@@ -104,3 +129,71 @@ def test_symlinked_source_is_rejected(tmp_path, monkeypatch):
     link.symlink_to(real)
     with pytest.raises(ValueError, match="Missing shared Compose resource"):
         mobile.verify_compose_resources(link, app_product(tmp_path))
+
+
+def test_symlinked_source_tree_is_rejected(tmp_path, monkeypatch):
+    monkeypatch.setenv("BRANCH_BUILD_DIR", str(tmp_path))
+    source = make_source(tmp_path)
+    (source / "linked").symlink_to(source / "value")
+    with pytest.raises(ValueError, match="Symlinked shared Compose resource"):
+        mobile.verify_compose_resources(source, app_product(tmp_path))
+
+
+def run_installer(source, build_dir, app_name="Branch"):
+    env = dict(os.environ)
+    env["TARGET_BUILD_DIR"] = str(build_dir)
+    env["WRAPPER_NAME"] = f"{app_name}.app"
+    env["BRANCH_COMPOSE_RESOURCES"] = str(source)
+    env["BRANCH_COMPOSE_BUNDLE"] = str(
+        build_dir / f"{app_name}.app/compose-resources/composeResources"
+    )
+    return subprocess.run(
+        ["bash", str(INSTALLER)], env=env, capture_output=True, text=True, check=False
+    )
+
+
+def test_actual_installer_copies_valid_resources(tmp_path):
+    source = make_source(tmp_path)
+    build_dir = tmp_path / "products"
+    (build_dir / "Branch.app").mkdir(parents=True)
+    result = run_installer(source, build_dir)
+    assert result.returncode == 0, result.stderr
+    copied = build_dir / "Branch.app/compose-resources/composeResources/value"
+    assert copied.read_text() == "resource"
+
+
+def test_actual_installer_rejects_intermediate_symlink_and_preserves_sentinel(tmp_path):
+    source = make_source(tmp_path)
+    build_dir = tmp_path / "products"
+    app = build_dir / "Branch.app"
+    app.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    (outside / "composeResources").mkdir(parents=True)
+    sentinel = outside / "composeResources/sentinel.txt"
+    sentinel.write_text("keep")
+    (app / "compose-resources").symlink_to(outside)
+    result = run_installer(source, build_dir)
+    assert result.returncode != 0
+    assert sentinel.read_text() == "keep"
+
+
+def test_actual_installer_rejects_empty_source_and_preserves_sentinel(tmp_path):
+    source = make_source(tmp_path, empty=True)
+    build_dir = tmp_path / "products"
+    app = build_dir / "Branch.app"
+    app.mkdir(parents=True)
+    sentinel = app / "sentinel.txt"
+    sentinel.write_text("keep")
+    result = run_installer(source, build_dir)
+    assert result.returncode != 0
+    assert sentinel.read_text() == "keep"
+
+
+def test_actual_installer_rejects_symlinked_source(tmp_path):
+    real = make_source(tmp_path)
+    link = tmp_path / "link-composeResources"
+    link.symlink_to(real)
+    build_dir = tmp_path / "products"
+    (build_dir / "Branch.app").mkdir(parents=True)
+    result = run_installer(link, build_dir)
+    assert result.returncode != 0

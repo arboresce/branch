@@ -3,7 +3,8 @@ import SwiftUI
 
 @MainActor
 final class CatalogStore: ObservableObject {
-    let controller: AppRuntimeController = CatalogBridgeKt.createCatalogController()
+    nonisolated(unsafe) let controller: AppRuntimeController =
+        CatalogBridgeKt.createCatalogController()
 
     func load() {
         controller.load()
@@ -14,6 +15,10 @@ final class CatalogStore: ObservableObject {
     }
 
     func dispose() {
+        controller.dispose()
+    }
+
+    deinit {
         controller.dispose()
     }
 }

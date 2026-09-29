@@ -3,19 +3,20 @@ package ai.arboresce.branch.shared
 import ai.arboresce.branch.ui.DiagnosticPhase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 private class FakeSource(
     var text: String? = "first",
@@ -31,11 +32,6 @@ private class FakeSource(
 private fun controllerFor(source: RuntimeSource): RuntimeController =
     RuntimeController(source, CoroutineScope(Dispatchers.Unconfined), Dispatchers.Unconfined)
 
-/**
- * A source whose [snapshot] blocks on a worker thread until the test releases it. The
- * gate uses a [MutableStateFlow] so the test thread and worker thread share state
- * without an unmodelled data race.
- */
 private class BlockingSource(
     private val result: String? = "ok",
 ) : RuntimeSource {
@@ -49,9 +45,7 @@ private class BlockingSource(
         callCount.value += 1
         gate.value = false
         started.trySend(Unit)
-        while (!gate.value) {
-            // Block until the test releases this call.
-        }
+        while (!gate.value) {}
         return result
     }
 
@@ -66,7 +60,6 @@ private class BlockingSource(
     }
 }
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class RuntimeControllerTest {
     @Test
     fun reportsLoadingBeforeAnyResult() {
@@ -199,66 +192,94 @@ class RuntimeControllerTest {
     }
 
     @Test
-    fun pauseWhileBlockedThenResumeDoesNotOverlapOrDuplicate() =
-        runTest {
+    fun pauseWhileBlockedThenResumeDoesNotOverlapOrDuplicate() {
+        runBlocking {
             val source = BlockingSource()
-            val controller = RuntimeController(source, backgroundScope, Dispatchers.Default)
-            controller.load()
-            runCurrent()
-            source.awaitStart()
-            controller.cancel()
-            controller.load()
-            runCurrent()
-            assertFalse(source.hasStarted(), "B must not enter while A still holds the native call")
-            assertEquals(1, source.calls)
-            source.release()
-            source.awaitStart()
-            controller.load()
-            runCurrent()
-            assertFalse(source.hasStarted(), "C while B is active must not start another call")
-            assertEquals(2, source.calls)
-            source.release()
-            runCurrent()
-            assertEquals(2, source.calls)
-            controller.dispose()
+            val scope = CoroutineScope(Dispatchers.Default + Job())
+            val controller = RuntimeController(source, scope, Dispatchers.Default)
+            try {
+                controller.load()
+                source.awaitStart()
+                controller.cancel()
+                controller.load()
+                assertFalse(
+                    source.hasStarted(),
+                    "B must not enter while A still holds the native call",
+                )
+                assertEquals(1, source.calls)
+                source.release()
+                source.awaitStart()
+                controller.load()
+                assertFalse(source.hasStarted(), "C while B is active must not start another call")
+                assertEquals(2, source.calls)
+                source.release()
+                controller.awaitContent("ok")
+                assertEquals(2, source.calls)
+            } finally {
+                controller.dispose()
+                scope.cancel()
+                source.release()
+            }
         }
+    }
 
     @Test
-    fun resumeAfterCancellationLoadsExactlyOnce() =
-        runTest {
+    fun resumeAfterCancellationLoadsExactlyOnce() {
+        runBlocking {
             val source = BlockingSource("resumed")
-            val controller = RuntimeController(source, backgroundScope, Dispatchers.Default)
-            controller.load()
-            runCurrent()
-            source.awaitStart()
-            controller.cancel()
-            source.release()
-            runCurrent()
-            controller.load()
-            runCurrent()
-            source.awaitStart()
-            assertEquals(2, source.calls)
-            source.release()
-            runCurrent()
-            assertEquals(2, source.calls)
-            controller.dispose()
+            val scope = CoroutineScope(Dispatchers.Default + Job())
+            val controller = RuntimeController(source, scope, Dispatchers.Default)
+            try {
+                controller.load()
+                source.awaitStart()
+                controller.cancel()
+                source.release()
+                controller.load()
+                source.awaitStart()
+                assertEquals(2, source.calls)
+                source.release()
+                controller.awaitContent("resumed")
+                assertEquals(2, source.calls)
+            } finally {
+                controller.dispose()
+                scope.cancel()
+                source.release()
+            }
         }
+    }
 
     @Test
-    fun disposeWhileBlockedRejectsCompletionAndLaterLoads() =
-        runTest {
+    fun disposeWhileBlockedRejectsCompletionAndLaterLoads() {
+        runBlocking {
             val source = BlockingSource("late")
-            val controller = RuntimeController(source, backgroundScope, Dispatchers.Default)
-            controller.load()
-            runCurrent()
-            source.awaitStart()
-            controller.dispose()
-            source.release()
-            runCurrent()
-            controller.load()
-            runCurrent()
-            assertFalse(source.hasStarted())
-            assertEquals(1, source.calls)
-            assertIs<DiagnosticPhase.Loading>(controller.phase.value)
+            val scope = CoroutineScope(Dispatchers.Default + Job())
+            val controller = RuntimeController(source, scope, Dispatchers.Default)
+            try {
+                controller.load()
+                source.awaitStart()
+                controller.dispose()
+                scope.cancel()
+                source.release()
+                delay(100)
+                controller.load()
+                assertFalse(source.hasStarted())
+                assertEquals(1, source.calls)
+                assertIs<DiagnosticPhase.Loading>(controller.phase.value)
+            } finally {
+                source.release()
+            }
         }
+    }
+
+    private suspend fun RuntimeController.awaitContent(expected: String) {
+        val started = TimeSource.Monotonic.markNow()
+        while (true) {
+            val phase = phase.value
+            if (phase is DiagnosticPhase.Content && phase.text == expected) return
+            if (started.elapsedNow() > 5.seconds) {
+                throw AssertionError("Expected published content: $expected")
+            }
+            delay(5)
+        }
+    }
 }

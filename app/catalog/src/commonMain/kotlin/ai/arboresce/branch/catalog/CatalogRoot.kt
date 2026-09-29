@@ -23,13 +23,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * Catalog consumer of the shared modules. The hosting application owns [controller] and
- * its lifecycle; the composable only renders it so background/resume and terminal
- * disposal stay with the real host.
- */
 @Composable
-fun CatalogRoot(controller: RuntimeController) {
+fun CatalogRoot(
+    controller: RuntimeController,
+    glassCapabilityAvailable: Boolean,
+) {
     val clock = remember { FixedCatalogClock() }
     val insets = WindowInsets.safeDrawing
     Column(Modifier.fillMaxSize().windowInsetsPadding(insets).consumeWindowInsets(insets)) {
@@ -50,7 +48,7 @@ fun CatalogRoot(controller: RuntimeController) {
         LazyColumn(Modifier.weight(1f).testTag("catalog-list")) {
             item { CatalogImageProbe() }
             item { CatalogNavigationProbe() }
-            item { CatalogGlassGallery() }
+            item { CatalogGlassGallery(glassCapabilityAvailable) }
             items(CatalogFixtures.items, key = { it.id }) { item ->
                 BasicText(
                     "${item.id} | ${item.title} | ${item.subtitle}",

@@ -1,14 +1,15 @@
 package ai.arboresce.branch.catalog.host
 
 import ai.arboresce.branch.catalog.CatalogRoot
+import ai.arboresce.branch.catalog.glassCapabilityAvailable
 import ai.arboresce.branch.shared.RuntimeController
+import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
-/** Ties the catalog controller to the hosting lifecycle; disposal stays with its owner. */
 @Composable
 fun CatalogHost(controller: RuntimeController) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -25,5 +26,5 @@ fun CatalogHost(controller: RuntimeController) {
         if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) controller.load()
         onDispose { lifecycle.removeObserver(observer) }
     }
-    CatalogRoot(controller)
+    CatalogRoot(controller, glassCapabilityAvailable = glassCapabilityAvailable(Build.VERSION.SDK_INT))
 }

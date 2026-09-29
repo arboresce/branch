@@ -52,6 +52,14 @@ final class CatalogUITests: XCTestCase {
         for tag in ["glass-surface", "glass-fallback-capability", "glass-fallback-effects"] {
             XCTAssertTrue(reveal(app, element(app, tag)), tag)
         }
+        let list = element(app, "catalog-list")
+        for step in 0..<4 {
+            let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            attachment.name = "glass-scroll-\(step)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            list.swipeUp()
+        }
     }
 
     func testNavigationProbeTransitionsBetweenTwoEntries() {
