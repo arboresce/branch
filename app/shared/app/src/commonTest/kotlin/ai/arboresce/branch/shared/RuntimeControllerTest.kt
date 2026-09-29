@@ -12,21 +12,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlin.coroutines.ContinuationInterceptor
+import kotlin.coroutines.coroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-/**
- * Controller orchestration is serialized on one controlled executor; only the
- * blocking native fake runs on the separate worker, matching host ownership.
- */
 private val CONTROLLER_EXECUTOR = Dispatchers.Default.limitedParallelism(1)
 private val NATIVE_WORKER = Dispatchers.Default.limitedParallelism(1)
 
@@ -34,6 +33,8 @@ private val START_BOUND = 5.seconds
 private val COMPLETION_BOUND = 5.seconds
 private val WORKER_BOUND = 20.seconds
 private val SCENARIO_BOUND = 30.seconds
+private val CLEANUP_BOUND = 25.seconds
+private val SETTLE_BOUND = 5.seconds
 
 private class FakeSource(
     var text: String? = "first",
@@ -55,20 +56,26 @@ private class BlockingSource(
     private val started = Channel<Unit>(Channel.UNLIMITED)
     private val gate = MutableStateFlow(false)
     private val callCount = MutableStateFlow(0)
+    private val finishedCount = MutableStateFlow(0)
 
     val calls: Int get() = callCount.value
+    val finished: Int get() = finishedCount.value
 
     override fun snapshot(): String? {
         callCount.value += 1
         gate.value = false
         started.trySend(Unit)
-        val deadline = TimeSource.Monotonic.markNow()
-        while (!gate.value) {
-            if (deadline.elapsedNow() > WORKER_BOUND) {
-                throw AssertionError("worker was not released within $WORKER_BOUND")
+        try {
+            val deadline = TimeSource.Monotonic.markNow()
+            while (!gate.value) {
+                if (deadline.elapsedNow() > WORKER_BOUND) {
+                    throw AssertionError("worker was not released within $WORKER_BOUND")
+                }
             }
+            return result
+        } finally {
+            finishedCount.value += 1
         }
-        return result
     }
 
     suspend fun awaitStart(timeout: Duration = START_BOUND) {
@@ -83,6 +90,65 @@ private class BlockingSource(
 
     fun release() {
         gate.value = true
+    }
+}
+
+private fun ownedScope(): CoroutineScope = CoroutineScope(CONTROLLER_EXECUTOR + Job())
+
+private suspend fun assertControllerExecutor() {
+    assertSame(CONTROLLER_EXECUTOR, coroutineContext[ContinuationInterceptor])
+}
+
+private suspend fun CoroutineScope.awaitTermination(bound: Duration = CLEANUP_BOUND) {
+    val job = coroutineContext[Job] ?: return
+    withTimeout(bound) { job.join() }
+}
+
+private suspend fun CoroutineScope.awaitSettled(bound: Duration = SETTLE_BOUND) {
+    val parent = coroutineContext[Job] ?: return
+    withTimeout(bound) {
+        while (parent.children.any { !it.isCompleted }) {
+            parent.children
+                .filter { !it.isCompleted }
+                .toList()
+                .forEach { it.join() }
+        }
+    }
+}
+
+private suspend fun cleanupOwned(
+    source: BlockingSource,
+    controller: RuntimeController,
+    scope: CoroutineScope,
+) {
+    source.release()
+    controller.dispose()
+    scope.cancel()
+    scope.awaitTermination()
+}
+
+private suspend fun runBoundedScenario(
+    cleanupBound: Duration = CLEANUP_BOUND,
+    cleanup: suspend () -> Unit,
+    body: suspend () -> Unit,
+) {
+    var primary: Throwable? = null
+    try {
+        withTimeout(SCENARIO_BOUND) { body() }
+    } catch (error: Throwable) {
+        primary = error
+        throw error
+    } finally {
+        var cleanupFailure: Throwable? = null
+        try {
+            withTimeout(cleanupBound) { cleanup() }
+        } catch (error: Throwable) {
+            cleanupFailure = error
+        }
+        if (cleanupFailure != null) {
+            if (primary == null) throw cleanupFailure
+            println("cleanup failed after primary failure: $cleanupFailure")
+        }
     }
 }
 
@@ -218,141 +284,164 @@ class RuntimeControllerTest {
     }
 
     @Test
-    fun pauseWhileBlockedThenResumeDoesNotOverlapOrDuplicate() {
-        runBlocking {
+    fun pauseWhileBlockedThenResumeDoesNotOverlapOrDuplicate() =
+        runBlocking(CONTROLLER_EXECUTOR) {
             val source = BlockingSource()
-            val scope = CoroutineScope(CONTROLLER_EXECUTOR + Job())
+            val scope = ownedScope()
             val controller = RuntimeController(source, scope, NATIVE_WORKER)
-            try {
-                withTimeout(SCENARIO_BOUND) {
-                    controller.load()
-                    source.awaitStart()
-                    controller.cancel()
-                    controller.load()
-                    assertFalse(
-                        source.hasStarted(),
-                        "B must not enter while A still holds the native call",
-                    )
-                    assertEquals(1, source.calls)
-                    source.release()
-                    source.awaitStart()
-                    controller.load()
-                    assertFalse(
-                        source.hasStarted(),
-                        "C while B is active must not start another call",
-                    )
-                    assertEquals(2, source.calls)
-                    source.release()
-                    controller.awaitContent("ok")
-                    assertEquals(2, source.calls)
-                }
-            } finally {
-                source.release()
-                controller.dispose()
-                scope.cancel()
-                scope.awaitTermination()
-            }
-        }
-    }
-
-    @Test
-    fun resumeAfterCancellationLoadsExactlyOnce() {
-        runBlocking {
-            val source = BlockingSource("resumed")
-            val scope = CoroutineScope(CONTROLLER_EXECUTOR + Job())
-            val controller = RuntimeController(source, scope, NATIVE_WORKER)
-            try {
-                withTimeout(SCENARIO_BOUND) {
-                    controller.load()
-                    source.awaitStart()
-                    controller.cancel()
-                    source.release()
-                    controller.load()
-                    source.awaitStart()
-                    assertEquals(2, source.calls)
-                    source.release()
-                    controller.awaitContent("resumed")
-                    assertEquals(2, source.calls)
-                }
-            } finally {
-                source.release()
-                controller.dispose()
-                scope.cancel()
-                scope.awaitTermination()
-            }
-        }
-    }
-
-    @Test
-    fun disposeWhileBlockedRejectsCompletionAndLaterLoads() {
-        runBlocking {
-            val source = BlockingSource("late")
-            val scope = CoroutineScope(CONTROLLER_EXECUTOR + Job())
-            val controller = RuntimeController(source, scope, NATIVE_WORKER)
-            try {
-                withTimeout(SCENARIO_BOUND) {
-                    controller.load()
-                    source.awaitStart()
-                    controller.dispose()
-                    scope.cancel()
-                    source.release()
-                    controller.load()
-                    assertFalse(source.hasStarted())
-                    assertEquals(1, source.calls)
-                    assertIs<DiagnosticPhase.Loading>(controller.phase.value)
-                }
-            } finally {
-                source.release()
-                controller.dispose()
-                scope.cancel()
-                scope.awaitTermination()
-            }
-        }
-    }
-
-    @Test
-    fun missingStartIsDetectedWithinTheBound() {
-        runBlocking {
-            val source = BlockingSource()
-            try {
-                val elapsed = TimeSource.Monotonic.markNow()
-                assertFailsWith<AssertionError> {
-                    source.awaitStart(timeout = 500.milliseconds)
-                }
-                assertTrue(elapsed.elapsedNow() < 5.seconds)
-            } finally {
-                source.release()
-            }
-        }
-    }
-
-    @Test
-    fun withheldCompletionIsDetectedWithinTheBound() {
-        runBlocking {
-            val source = BlockingSource("late")
-            val scope = CoroutineScope(CONTROLLER_EXECUTOR + Job())
-            val controller = RuntimeController(source, scope, NATIVE_WORKER)
-            try {
+            val elapsed = TimeSource.Monotonic.markNow()
+            runBoundedScenario(cleanup = { cleanupOwned(source, controller, scope) }) {
+                assertControllerExecutor()
                 controller.load()
                 source.awaitStart()
-                val elapsed = TimeSource.Monotonic.markNow()
-                assertFailsWith<AssertionError> {
-                    controller.awaitContent("late", timeout = 500.milliseconds)
-                }
-                assertTrue(elapsed.elapsedNow() < 5.seconds)
+                controller.cancel()
+                controller.load()
+                assertFalse(
+                    source.hasStarted(),
+                    "B must not enter while A still holds the native call",
+                )
                 assertEquals(1, source.calls)
+                source.release()
+                source.awaitStart()
+                controller.load()
+                assertFalse(
+                    source.hasStarted(),
+                    "C while B is active must not start another call",
+                )
+                assertEquals(2, source.calls)
+                source.release()
+                controller.awaitContent("ok")
+                assertEquals(2, source.calls)
+            }
+            assertTrue(elapsed.elapsedNow() < SCENARIO_BOUND)
+            assertEquals(source.calls, source.finished)
+        }
+
+    @Test
+    fun resumeAfterCancellationLoadsExactlyOnce() =
+        runBlocking(CONTROLLER_EXECUTOR) {
+            val source = BlockingSource("resumed")
+            val scope = ownedScope()
+            val controller = RuntimeController(source, scope, NATIVE_WORKER)
+            val elapsed = TimeSource.Monotonic.markNow()
+            runBoundedScenario(cleanup = { cleanupOwned(source, controller, scope) }) {
+                assertControllerExecutor()
+                controller.load()
+                source.awaitStart()
+                controller.cancel()
+                source.release()
+                controller.load()
+                source.awaitStart()
+                assertEquals(2, source.calls)
+                source.release()
+                controller.awaitContent("resumed")
+                assertEquals(2, source.calls)
+            }
+            assertTrue(elapsed.elapsedNow() < SCENARIO_BOUND)
+            assertEquals(source.calls, source.finished)
+        }
+
+    @Test
+    fun disposeWhileBlockedRejectsCompletionAndLaterLoads() =
+        runBlocking(CONTROLLER_EXECUTOR) {
+            val source = BlockingSource("late")
+            val scope = ownedScope()
+            val controller = RuntimeController(source, scope, NATIVE_WORKER)
+            val elapsed = TimeSource.Monotonic.markNow()
+            runBoundedScenario(cleanup = { cleanupOwned(source, controller, scope) }) {
+                assertControllerExecutor()
+                controller.load()
+                source.awaitStart()
+                controller.dispose()
+                source.release()
+                scope.awaitSettled()
+                assertIs<DiagnosticPhase.Loading>(controller.phase.value)
+                assertEquals(1, source.calls)
+                assertFalse(source.hasStarted())
+
+                controller.load()
+                scope.awaitSettled()
+                assertIs<DiagnosticPhase.Loading>(controller.phase.value)
+                assertEquals(1, source.calls)
+                assertFalse(source.hasStarted())
+            }
+            assertTrue(elapsed.elapsedNow() < SCENARIO_BOUND)
+            assertEquals(source.calls, source.finished)
+        }
+
+    @Test
+    fun missingStartIsDetectedWithinTheBound() =
+        runBlocking(CONTROLLER_EXECUTOR) {
+            val source = BlockingSource()
+            val elapsed = TimeSource.Monotonic.markNow()
+            try {
+                val failure =
+                    assertFailsWith<AssertionError> {
+                        withTimeout(SCENARIO_BOUND) {
+                            source.awaitStart(timeout = 500.milliseconds)
+                        }
+                    }
+                assertTrue(failure.message.orEmpty().contains("did not start"))
             } finally {
                 source.release()
-                controller.dispose()
-                scope.cancel()
-                scope.awaitTermination()
             }
+            assertTrue(elapsed.elapsedNow() < SCENARIO_BOUND)
+            assertEquals(source.calls, source.finished)
         }
-    }
 
-    private suspend fun CoroutineScope.awaitTermination() {
-        coroutineContext[Job]?.join()
-    }
+    @Test
+    fun withheldCompletionIsDetectedWithinTheBound() =
+        runBlocking(CONTROLLER_EXECUTOR) {
+            val source = BlockingSource("late")
+            val scope = ownedScope()
+            val controller = RuntimeController(source, scope, NATIVE_WORKER)
+            val elapsed = TimeSource.Monotonic.markNow()
+            val failure =
+                assertFailsWith<AssertionError> {
+                    runBoundedScenario(cleanup = { cleanupOwned(source, controller, scope) }) {
+                        assertControllerExecutor()
+                        controller.load()
+                        source.awaitStart()
+                        controller.awaitContent("late", timeout = 500.milliseconds)
+                    }
+                }
+            assertEquals("Expected published content: late", failure.message)
+            assertTrue(elapsed.elapsedNow() < SCENARIO_BOUND)
+            assertEquals(1, source.calls)
+            assertEquals(source.calls, source.finished)
+        }
+
+    @Test
+    fun cleanupDeadlineIsBoundedAndPreservesPrimaryFailure() =
+        runBlocking(CONTROLLER_EXECUTOR) {
+            val source = BlockingSource()
+            val scope = ownedScope()
+            val controller = RuntimeController(source, scope, NATIVE_WORKER)
+            val elapsed = TimeSource.Monotonic.markNow()
+            val failure =
+                assertFailsWith<AssertionError> {
+                    runBoundedScenario(
+                        cleanupBound = 300.milliseconds,
+                        cleanup = {
+                            controller.dispose()
+                            scope.cancel()
+                            scope.awaitTermination()
+                        },
+                    ) {
+                        assertControllerExecutor()
+                        controller.load()
+                        source.awaitStart()
+                        throw AssertionError("primary scenario failure")
+                    }
+                }
+            assertEquals("primary scenario failure", failure.message)
+            assertTrue(elapsed.elapsedNow() < SCENARIO_BOUND)
+            source.release()
+            scope.awaitTermination()
+            assertTrue(scope.coroutineContext[Job]?.isCompleted == true)
+            assertEquals(1, source.calls)
+            assertEquals(source.calls, source.finished)
+        }
 
     private suspend fun RuntimeController.awaitContent(
         expected: String,
