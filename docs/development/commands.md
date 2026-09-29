@@ -11,7 +11,9 @@ containing this Makefile.
 | make setup-rust | Fetch locked Rust dependencies |
 | make check-rust | Check formatting, compilation and Clippy |
 | make test-rust | Run Rust unit and documentation tests |
-| make test-shared | Run the Kotlin shared-module tests on the iOS simulator |
+| make test-shared | Run the Kotlin shared-module tests on the iOS simulator and the Android host runner |
+| make test-shared-android / test-shared-ios | Run the shared-module common tests on the Android host JVM or the iOS simulator |
+| make check-tools | Check the locked Python environment, contracts, native settings, Python tests and style without a platform SDK |
 | make verify-rust | Run Rust checks, then tests |
 | make setup-android / setup-ios | Prepare locked Python tools, platform Rust targets, settings, bindings and debug app |
 | make build-android / build-ios | Verify settings, build/reuse verified native artifacts and build the debug app |

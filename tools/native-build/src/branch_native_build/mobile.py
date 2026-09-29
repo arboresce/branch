@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from . import native
@@ -78,6 +79,7 @@ def apple_environment(env: dict, configuration: str = "debug", sdk: str = "simul
     app = contracts()["application"]
     architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
     flavor = "debug" if configuration == "debug" else "release"
+    resources, bundle = compose_resource_paths(configuration, sdk, "Branch")
     env.update(
         BRANCH_IOS_MINIMUM_OS=contracts()["native-artifacts"]["ios"]["minimum_os"],
         BRANCH_BUNDLE_ID=app["bundle_id"],
@@ -85,16 +87,8 @@ def apple_environment(env: dict, configuration: str = "debug", sdk: str = "simul
         BRANCH_APP_VERSION=app["version"],
         BRANCH_BUILD_NUMBER=str(app["version_code"]),
         BRANCH_IOS_CONFIGURATION=configuration.capitalize(),
-        BRANCH_COMPOSE_RESOURCES=str(
-            output()
-            / f"gradle/shared/xc-framework/kotlin-multiplatform-resources/aggregated-resources/{architecture}/composeResources"
-        ),
-        BRANCH_COMPOSE_BUNDLE=str(
-            output()
-            / "ios/derived/Build/Products"
-            / f"{configuration.capitalize()}-{'iphonesimulator' if sdk == 'simulator' else 'iphoneos'}"
-            / "Branch.app/compose-resources/composeResources"
-        ),
+        BRANCH_COMPOSE_RESOURCES=str(resources),
+        BRANCH_COMPOSE_BUNDLE=str(bundle),
         BRANCH_UI=str(
             output()
             / f"gradle/shared/xc-framework/bin/{architecture}/{flavor}Framework/BranchUI.framework"
@@ -119,6 +113,72 @@ def xcode(
         *args,
         env=env,
     )
+
+
+SHARED_COMMON_TEST_MODULES = (
+    (":shared:app", "shared/app"),
+    (":catalog", "catalog"),
+)
+_SHARED_TEST_TARGETS = {
+    "ios": "iosSimulatorArm64Test",
+    "android": "testAndroidHostTest",
+}
+
+
+def compose_resource_paths(
+    configuration: str,
+    sdk: str,
+    app_name: str,
+) -> tuple[Path, Path]:
+    architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
+    source = (
+        output()
+        / f"gradle/shared/xc-framework/kotlin-multiplatform-resources/aggregated-resources/{architecture}/composeResources"
+    )
+    destination = (
+        output()
+        / "ios/derived/Build/Products"
+        / f"{configuration.capitalize()}-{'iphonesimulator' if sdk == 'simulator' else 'iphoneos'}"
+        / f"{app_name}.app/compose-resources/composeResources"
+    )
+    return source, destination
+
+
+def verify_compose_resources(source: Path, destination: Path) -> None:
+    if destination.parts[-2:] != ("compose-resources", "composeResources"):
+        raise ValueError(f"Unbounded Compose resource destination: {destination}")
+    if not source.is_dir():
+        raise ValueError(f"Missing shared Compose resource bundle: {source}")
+
+
+def common_test_directories() -> set[str]:
+    return {
+        str(path.parents[1].relative_to(ROOT / "app"))
+        for path in (ROOT / "app").rglob("src/commonTest")
+    }
+
+
+def verify_shared_runners() -> None:
+    declared = {directory for _, directory in SHARED_COMMON_TEST_MODULES}
+    undeclared = common_test_directories() - declared
+    if undeclared:
+        raise ValueError(f"Modules declare commonTest without a runner: {sorted(undeclared)}")
+    for _, directory in SHARED_COMMON_TEST_MODULES:
+        if not (ROOT / "app" / directory / "src/commonTest").is_dir():
+            raise ValueError(f"Declared shared test module has no commonTest: {directory}")
+
+
+def executed_test_counts() -> dict[tuple[str, str], int]:
+    base = output() / "gradle"
+    counts: dict[tuple[str, str], int] = {}
+    for path in sorted(base.rglob("TEST-*.xml")):
+        parts = path.relative_to(base).parts
+        if "test-results" not in parts:
+            continue
+        index = parts.index("test-results")
+        key = ("/".join(parts[:index]), parts[index + 1])
+        counts[key] = counts.get(key, 0) + int(ET.parse(path).getroot().get("tests", "0"))
+    return counts
 
 
 def build(platform: str, configuration: str = "debug", sdk: str = "simulator") -> dict:
@@ -150,6 +210,9 @@ def build(platform: str, configuration: str = "debug", sdk: str = "simulator") -
         )
         destination = (
             "generic/platform=iOS Simulator" if sdk == "simulator" else "generic/platform=iOS"
+        )
+        verify_compose_resources(
+            Path(env["BRANCH_COMPOSE_RESOURCES"]), Path(env["BRANCH_COMPOSE_BUNDLE"])
         )
         xcode(
             env,
@@ -316,10 +379,36 @@ def test(platform: str, configuration: str = "debug") -> None:
             gradle(env, ":android:app:connectedDebugAndroidTest")
 
 
-def test_shared() -> None:
-    env = environment("ios")
-    with ios_device():
-        gradle(env, ":catalog:allTests", ":shared:app:allTests")
+def verify_shared_test_execution(
+    platform: str,
+    counts: dict[tuple[str, str], int],
+) -> None:
+    target = _SHARED_TEST_TARGETS[platform]
+    for _, directory in SHARED_COMMON_TEST_MODULES:
+        if counts.get((directory, target), 0) < 1:
+            raise ValueError(f"No executed tests recorded for {directory}:{target}")
+
+
+def test_shared(platform: str) -> None:
+    verify_shared_runners()
+    env = toolchain_environment()
+    env["ANDROID_HOME"] = str(native.sdk())
+    target = _SHARED_TEST_TARGETS[platform]
+    tasks: list[str] = []
+    for module, directory in SHARED_COMMON_TEST_MODULES:
+        shutil.rmtree(output() / "gradle" / directory / "test-results", ignore_errors=True)
+        tasks.append(f"{module}:{target}")
+    if platform == "ios":
+        with ios_device():
+            gradle(env, *tasks)
+    else:
+        gradle(env, *tasks)
+    verify_shared_test_execution(platform, executed_test_counts())
+
+
+def test_shared_all() -> None:
+    test_shared("android")
+    test_shared("ios")
 
 
 def dev(platform: str) -> None:
@@ -360,6 +449,7 @@ def catalog_apple_environment(
     app = contracts()["application"]
     architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
     flavor = "debug" if configuration == "debug" else "release"
+    resources, bundle = compose_resource_paths(configuration, sdk, "BranchCatalog")
     env.update(
         BRANCH_IOS_MINIMUM_OS=contracts()["native-artifacts"]["ios"]["minimum_os"],
         BRANCH_APP_VERSION=app["version"],
@@ -368,16 +458,8 @@ def catalog_apple_environment(
             output()
             / f"gradle/catalog/xc-framework/bin/{architecture}/{flavor}Framework/BranchCatalogUI.framework"
         ),
-        BRANCH_COMPOSE_RESOURCES=str(
-            output()
-            / f"gradle/shared/xc-framework/kotlin-multiplatform-resources/aggregated-resources/{architecture}/composeResources"
-        ),
-        BRANCH_COMPOSE_BUNDLE=str(
-            output()
-            / "ios/derived/Build/Products"
-            / f"{configuration.capitalize()}-{'iphonesimulator' if sdk == 'simulator' else 'iphoneos'}"
-            / "BranchCatalog.app/compose-resources/composeResources"
-        ),
+        BRANCH_COMPOSE_RESOURCES=str(resources),
+        BRANCH_COMPOSE_BUNDLE=str(bundle),
     )
     return env
 
@@ -414,6 +496,9 @@ def build_catalog(platform: str, configuration: str = "debug", sdk: str = "simul
         )
         destination = (
             "generic/platform=iOS Simulator" if sdk == "simulator" else "generic/platform=iOS"
+        )
+        verify_compose_resources(
+            Path(env["BRANCH_COMPOSE_RESOURCES"]), Path(env["BRANCH_COMPOSE_BUNDLE"])
         )
         xcode(
             env,

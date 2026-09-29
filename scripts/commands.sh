@@ -55,7 +55,7 @@ platform_action() {
     esac
 }
 case "$1" in
-    help) printf '%s\n' 'doctor setup check test verify' 'setup-rust check-rust test-rust verify-rust' 'test-shared' 'setup-ios dev-ios build-ios build-release-ios build-ios-device check-ios test-ios verify-ios' 'setup-android dev-android build-android build-release-android check-android test-android verify-android' 'build-catalog-android build-catalog-ios dev-catalog-android dev-catalog-ios test-catalog-android test-catalog-ios' ;;
+    help) printf '%s\n' 'doctor setup check test verify' 'setup-rust check-rust test-rust verify-rust' 'check-tools' 'test-shared test-shared-android test-shared-ios' 'setup-ios dev-ios build-ios build-release-ios build-ios-device check-ios test-ios verify-ios' 'setup-android dev-android build-android build-release-android check-android test-android verify-android' 'build-catalog-android build-catalog-ios dev-catalog-android dev-catalog-ios test-catalog-android test-catalog-ios' ;;
     doctor)
         cargo --version
         rustc --version
@@ -66,9 +66,12 @@ case "$1" in
         command -v xcodegen
         ;;
     setup-rust) cargo fetch --locked ;;
+    check-tools) check_tools ;;
     check-rust) check_rust ;;
     test-rust) cargo test --workspace --locked ;;
     test-shared) asset branch-native test-shared ;;
+    test-shared-android) asset branch-native test-shared-android ;;
+    test-shared-ios) asset branch-native test-shared-ios ;;
     verify-rust)
         check_rust
         cargo test --workspace --locked

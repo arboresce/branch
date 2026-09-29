@@ -22,6 +22,8 @@ _NO_PLATFORM_ACTIONS = {
     "contract-check",
     "env-check",
     "test-shared",
+    "test-shared-android",
+    "test-shared-ios",
 }
 _CONFIGURATION_ACTIONS = {"build", "test", "build-catalog", "test-catalog"}
 _SDK_ACTIONS = {"build", "test", "build-catalog", "test-catalog"}
@@ -67,6 +69,8 @@ def main() -> None:
             "contract-check",
             "env-check",
             "test-shared",
+            "test-shared-android",
+            "test-shared-ios",
             "build-native",
             "check-native",
             "lint",
@@ -92,10 +96,13 @@ def main() -> None:
         parser.error(str(error))
     if args.action.startswith("config-"):
         config.configure(args.action == "config-write")
-    elif args.action == "test-shared":
+    elif args.action.startswith("test-shared"):
         from . import mobile
 
-        mobile.test_shared()
+        if args.action == "test-shared":
+            mobile.test_shared_all()
+        else:
+            mobile.test_shared(args.action.removeprefix("test-shared-"))
     elif args.action == "contract-check":
         from . import inventory
 

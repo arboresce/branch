@@ -14,6 +14,7 @@ kotlin {
         namespace = "ai.arboresce.branch.shared"
         compileSdk = nativeSettings.getProperty("compileSdk").toInt()
         minSdk = nativeSettings.getProperty("minSdk").toInt()
+        withHostTest {}
     }
     iosArm64()
     iosSimulatorArm64()

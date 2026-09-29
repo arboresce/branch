@@ -4,34 +4,28 @@ on:
   push:
   pull_request:
 
+env:
+  UV_PROJECT_ENVIRONMENT: ${{ github.workspace }}/.build/python
+
 jobs:
   rust:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: make test-rust
+      - name: Rust toolchain
+        run: rustup show active-toolchain
+      - name: Rust checks and tests
+        run: make verify-rust
 
   tools:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: uv sync --project tools/native-build --locked
-      - run: uv run --project tools/native-build --locked --no-sync branch-native config-check
-      - run: uv run --project tools/native-build --locked --no-sync branch-native contract-check
-      - run: uv run --project tools/native-build --locked --no-sync ruff check tools/native-build
-      - run: uv run --project tools/native-build --locked --no-sync ruff format --check tools/native-build
-      - run: uv run --project tools/native-build --locked --no-sync pytest tools/native-build/tests
-
-  apple:
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v4
-      - run: brew install xcodegen
-      - run: uv sync --project tools/native-build --locked
-      - run: make setup-ios
-      - run: make check-ios
-      - run: make test-shared
-      - run: make test-ios
+      - uses: astral-sh/setup-uv@v5
+      - name: Prepare the selected Python environment
+        run: uv sync --project tools/native-build --locked
+      - name: Python, contracts and native producer checks
+        run: make check-tools
 
   android:
     runs-on: ubuntu-latest
@@ -42,11 +36,45 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: android-actions/setup-android@v3
-      - run: uv sync --project tools/native-build --locked
-      - run: make setup-android
-      - run: make check-android
-      - uses: ReactiveCircus/android-emulator-runner@v2
+      - uses: astral-sh/setup-uv@v5
+      - name: Prepare the selected Python environment
+        run: uv sync --project tools/native-build --locked
+      - name: Android host checks and shared host tests
+        run: |
+          make setup-android
+          make check-android
+          make test-shared-android
+      - name: Android instrumentation tests
+        uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 36
           arch: x86_64
-          script: make test-android
+          script: |
+            ANDROID_BIN="$(command -v adb || echo "${ANDROID_SDK_ROOT:-${ANDROID_HOME}}/platform-tools/adb")"
+            export ANDROID_SERIAL="$("${ANDROID_BIN}" devices | awk 'NR==2 {print $1}')"
+            make test-android
+            make test-catalog-android
+
+  apple:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes
+      - uses: astral-sh/setup-uv@v5
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Prepare the selected Python environment
+        run: uv sync --project tools/native-build --locked
+      - name: iOS setup and checks
+        run: |
+          make setup-ios
+          make check-ios
+      - name: Shared simulator tests
+        run: make test-shared-ios
+      - name: iOS host and catalog tests
+        run: |
+          make test-ios
+          make test-catalog-ios
