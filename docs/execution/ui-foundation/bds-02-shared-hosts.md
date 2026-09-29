@@ -1,10 +1,10 @@
 # BDS-02: Reactive shared hosts and verification harness
 
-Status: BDS-02.02 and BDS-02.04 corrected; BDS-02.05 pending, independent acceptance pending, 2026-09-29.
+Status: BDS-02.02/.04/.05 corrected, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
-Next action: complete BDS-02.05, then stop for independent acceptance before BDS-03.
+Next action: await independent acceptance at the Codex gate before BDS-03 or assets.
 
 ## Scope
 
@@ -53,7 +53,7 @@ No new service contract is owned by this unit.
 | BDS-02.02 | complete | Complete lifecycle resumption and race evidence | V2, V3 |
 | BDS-02.03 | complete | Launch the independent deterministic catalog | V2, V3 |
 | BDS-02.04 | complete | Qualify glass and consumer resource delivery | V2, V3 |
-| BDS-02.05 | planned | Close runner, CI and catalog-check gaps | V0, V2, V3 |
+| BDS-02.05 | complete | Close runner, CI and catalog-check gaps | V0, V2, V3 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -119,7 +119,7 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: R2-02, R2-04 and R2-07 corrected; R2-03 and R2-05 remain open. Hosted CI, Linux execution, API 28 device execution and physical qualification remain NOT_RUN. The Backdrop pin decision is recorded in BDS-06 and BUI-08.
+Open failures/limits: R2-02, R2-04, R2-05 and R2-07 corrected; R2-03 corrected structurally with hosted execution NOT_RUN. Hosted CI, Linux execution, API 28 device execution and physical qualification remain NOT_RUN. The Backdrop pin decision is recorded in BDS-06 and BUI-08.
 
 ## Second-review amendment (2026-09-29)
 
@@ -456,6 +456,39 @@ both fallbacks and the catalog-only resource on screen: `/tmp/pi-bds0204-catalog
 and `/tmp/pi-bds0204-catalog-android.png` (workstation convenience paths, not
 portable artifacts). API 28 execution on a real API 28 emulator remains NOT_RUN;
 the API 28 fallback is exercised at the capability-policy level, not on that image.
+
+### Second corrective checkpoint record: runners and CI (2026-09-29)
+
+BDS-02.05: shared-test receipts are now truthful. `TestReceipt` records tests,
+skips, failures and errors; `executed` subtracts skips and `failed` sums failures
+and errors. `verify_shared_test_execution` requires a receipt for every declared
+module at the exact platform target, rejects zero-executed (including all-skipped),
+failing, malformed and stale receipts, and `test_shared` forces re-execution with
+`--rerun-tasks` without deleting either platform's results. Receipts are keyed by
+module and target, so a wrong-target or an unrelated leftover suite is not counted.
+
+`branch-native lint` now collects both consumers: Android Lint runs for
+`:android:app` and `:catalog:android`, and iOS swift-format runs over `app/ios` and
+`app/catalog/ios`. The catalog Swift formatting errors are fixed and `make check-ios`
+and `make check-android` pass.
+
+The workflow is rewritten so each job owns its prerequisites: `apple` uses
+`macos-26` with an explicit `Xcode_26.6.app` selection, an iOS 26.5 runtime
+preflight, JDK 21, Android SDK components, uv and XcodeGen; `android` uses
+`ubuntu-latest` with JDK 21, Android SDK components, uv and a script that requires
+exactly one ready emulator before exporting `ANDROID_SERIAL`. Hosted and Linux
+execution remain NOT_RUN; the workflow is validated structurally.
+
+Verification (Branch project directory, `cargo extbuild run --` router):
+
+| Command | Result |
+| --- | --- |
+| `make test-shared` | both platforms forced; `:shared:app` 14 + `:catalog` 11 = 25 executed tests per platform, 0 skipped/failed; both receipts retained |
+| `pytest tools/native-build/tests` | 116 passed, including all-skipped, failing, malformed, stale and wrong-target receipt fixtures and per-job CI prerequisite fixtures |
+| `make check-ios` | ktlintCheck plus swift-format over `app/ios` and `app/catalog/ios` |
+| `make check-android` | ktlintCheck plus Android Lint for `:android:app` and `:catalog:android` |
+
+Hosted CI execution was not performed; no external runs were created.
 
 ## Sequence
 

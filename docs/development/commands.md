@@ -26,7 +26,7 @@ containing this Makefile.
 | make build-release-ios | Build and link the Release simulator framework and app |
 | make build-ios-device | Build the Release device framework and app where local signing/tooling permits |
 | make dev-android / dev-ios | Build, install and launch, retaining foreground console attachment |
-| make check-android / check-ios | Check Rust, Python tests/style, Kotlin style, settings and native artifact integrity; Android also runs Android Lint; iOS checks Swift style. No repairs |
+| make check-android / check-ios | Check Rust, Python tests/style, Kotlin style, settings and native artifact integrity; Android also runs Android Lint for the production and catalog hosts; iOS runs Swift style over both host trees. No repairs |
 | make test-android / test-ios | Build, boot/select a device and execute native platform tests |
 | make verify-android / verify-ios | Check first, then run platform tests |
 | make setup / check / test / verify | Apply the corresponding action to Android, then iOS |
@@ -39,8 +39,10 @@ Ruff availability; they report the setup command instead of repairing.
 `check-native-android` and `check-native-ios` are internal Bash dispatcher entries
 used by build integration, not extra Make targets. The internal `branch-native lint`
 action runs pinned Gradle ktlint checks for handwritten Kotlin and build scripts;
-on iOS it also runs Xcode swift-format with the committed `.swift-format` settings.
-Generated bindings are excluded from style checks.
+on iOS it also runs Xcode swift-format over `app/ios` and `app/catalog/ios` with the
+committed `.swift-format` settings, and on Android it runs Android Lint for both the
+production and catalog application hosts. Generated bindings are excluded from style
+checks.
 
 Dev is an interactive foreground command, not a background service. Ctrl-C closes
 its console and shuts down only a simulator/emulator booted by that invocation.

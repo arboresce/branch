@@ -7,6 +7,7 @@ import sys
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import NamedTuple
 
 from . import native
 from .config import ROOT, configure, contracts, output
@@ -60,6 +61,7 @@ def lint(platform: str) -> None:
     tasks = ["ktlintCheck"]
     if platform == "android":
         tasks.append(":android:app:lintDebug")
+        tasks.append(":catalog:android:lintDebug")
     gradle(env, *tasks)
     if platform == "ios":
         native.run(
@@ -71,6 +73,7 @@ def lint(platform: str) -> None:
             ".swift-format",
             "--recursive",
             "app/ios",
+            "app/catalog/ios",
             env=env,
         )
 
@@ -191,17 +194,68 @@ def verify_shared_runners() -> None:
             raise ValueError(f"Declared shared test module has no commonTest: {directory}")
 
 
-def executed_test_counts() -> dict[tuple[str, str], int]:
+class TestReceipt(NamedTuple):
+    tests: int
+    skipped: int
+    failures: int
+    errors: int
+
+    @property
+    def executed(self) -> int:
+        return self.tests - self.skipped
+
+    @property
+    def failed(self) -> int:
+        return self.failures + self.errors
+
+    def merge(self, other: TestReceipt) -> TestReceipt:
+        return TestReceipt(
+            self.tests + other.tests,
+            self.skipped + other.skipped,
+            self.failures + other.failures,
+            self.errors + other.errors,
+        )
+
+
+def _read_receipt(path: Path) -> TestReceipt:
+    root = ET.parse(path).getroot()
+    if root.tag != "testsuite":
+        raise ValueError(f"Malformed test receipt: {path}")
+    try:
+        return TestReceipt(
+            int(root.attrib["tests"]),
+            int(root.attrib["skipped"]),
+            int(root.attrib["failures"]),
+            int(root.attrib["errors"]),
+        )
+    except (KeyError, ValueError) as error:
+        raise ValueError(f"Malformed test receipt: {path}") from error
+
+
+def executed_test_counts() -> dict[tuple[str, str], TestReceipt]:
     base = output() / "gradle"
-    counts: dict[tuple[str, str], int] = {}
+    counts: dict[tuple[str, str], TestReceipt] = {}
     for path in sorted(base.rglob("TEST-*.xml")):
         parts = path.relative_to(base).parts
         if "test-results" not in parts:
             continue
         index = parts.index("test-results")
         key = ("/".join(parts[:index]), parts[index + 1])
-        counts[key] = counts.get(key, 0) + int(ET.parse(path).getroot().get("tests", "0"))
+        counts[key] = counts.get(key, TestReceipt(0, 0, 0, 0)).merge(_read_receipt(path))
     return counts
+
+
+def _module_receipt(directory: str, target: str, since: float | None) -> TestReceipt | None:
+    results = output() / f"gradle/{directory}/test-results/{target}"
+    files = sorted(results.glob("TEST-*.xml"))
+    if not files:
+        return None
+    if since is not None and any(path.stat().st_mtime < since for path in files):
+        raise ValueError(f"Stale test receipt for {directory}:{target}")
+    receipt = TestReceipt(0, 0, 0, 0)
+    for path in files:
+        receipt = receipt.merge(_read_receipt(path))
+    return receipt
 
 
 def build(platform: str, configuration: str = "debug", sdk: str = "simulator") -> dict:
@@ -403,14 +457,14 @@ def test(platform: str, configuration: str = "debug") -> None:
             gradle(env, ":android:app:connectedDebugAndroidTest")
 
 
-def verify_shared_test_execution(
-    platform: str,
-    counts: dict[tuple[str, str], int],
-) -> None:
+def verify_shared_test_execution(platform: str, since: float | None = None) -> None:
     target = _SHARED_TEST_TARGETS[platform]
     for _, directory in SHARED_COMMON_TEST_MODULES:
-        if counts.get((directory, target), 0) < 1:
+        receipt = _module_receipt(directory, target, since)
+        if receipt is None or receipt.executed < 1:
             raise ValueError(f"No executed tests recorded for {directory}:{target}")
+        if receipt.failed:
+            raise ValueError(f"Failing tests recorded for {directory}:{target}: {receipt.failed}")
 
 
 def test_shared(platform: str) -> None:
@@ -418,16 +472,14 @@ def test_shared(platform: str) -> None:
     env = toolchain_environment()
     env["ANDROID_HOME"] = str(native.sdk())
     target = _SHARED_TEST_TARGETS[platform]
-    tasks: list[str] = []
-    for module, directory in SHARED_COMMON_TEST_MODULES:
-        shutil.rmtree(output() / "gradle" / directory / "test-results", ignore_errors=True)
-        tasks.append(f"{module}:{target}")
+    tasks = [f"{module}:{target}" for module, _ in SHARED_COMMON_TEST_MODULES]
+    started = time.time()
     if platform == "ios":
         with ios_device():
-            gradle(env, *tasks)
+            gradle(env, *tasks, "--rerun-tasks")
     else:
-        gradle(env, *tasks)
-    verify_shared_test_execution(platform, executed_test_counts())
+        gradle(env, *tasks, "--rerun-tasks")
+    verify_shared_test_execution(platform, since=started)
 
 
 def test_shared_all() -> None:

@@ -55,7 +55,7 @@ class CatalogProbesTest {
             glassEffectsAvailable(
                 effectsEnabled = true,
                 capabilityAvailable = glassCapabilityAvailable(28),
-            )
+            ),
         )
     }
 

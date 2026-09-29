@@ -37,6 +37,11 @@ jobs:
           java-version: "21"
       - uses: android-actions/setup-android@v3
       - uses: astral-sh/setup-uv@v5
+      - name: Install Android SDK prerequisites
+        run: |
+          sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" \
+            "ndk;29.0.14206865" "cmdline-tools;latest"
       - name: Prepare the selected Python environment
         run: uv sync --project tools/native-build --locked
       - name: Android host checks and shared host tests
@@ -50,19 +55,43 @@ jobs:
           api-level: 36
           arch: x86_64
           script: |
-            ANDROID_BIN="$(command -v adb || echo "${ANDROID_SDK_ROOT:-${ANDROID_HOME}}/platform-tools/adb")"
-            export ANDROID_SERIAL="$("${ANDROID_BIN}" devices | awk 'NR==2 {print $1}')"
+            adb wait-for-device
+            devices="$(adb devices | awk 'NR>1 && $2 == "device" {print $1}')"
+            count="$(printf '%s\n' "$devices" | grep -c .)"
+            if [ "$count" -ne 1 ]; then
+              echo "Expected exactly one ready emulator, found $count" >&2
+              adb devices >&2
+              exit 1
+            fi
+            export ANDROID_SERIAL="$devices"
             make test-android
             make test-catalog-android
 
   apple:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode
+      - name: Select Xcode 26.6
         run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
           xcodebuild -version
-          xcrun simctl list runtimes
+      - name: Preflight the configured iOS 26.5 runtime
+        run: |
+          if ! xcrun simctl list runtimes | grep -q "iOS 26.5"; then
+            echo "The configured iOS 26.5 runtime is not installed" >&2
+            xcrun simctl list runtimes >&2
+            exit 1
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK prerequisites
+        run: |
+          sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" \
+            "ndk;29.0.14206865" "cmdline-tools;latest"
       - uses: astral-sh/setup-uv@v5
       - name: Install XcodeGen
         run: brew install xcodegen
