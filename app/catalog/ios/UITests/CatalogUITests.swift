@@ -9,4 +9,14 @@ final class CatalogUITests: XCTestCase {
         let item = app.descendants(matching: .any).matching(identifier: "catalog-item-1").firstMatch
         XCTAssertTrue(item.waitForExistence(timeout: 30))
     }
+
+    func testNavigationProbeTransitionsBetweenTwoEntries() {
+        let app = XCUIApplication()
+        app.launch()
+        let push = app.descendants(matching: .any).matching(identifier: "nav3-push").firstMatch
+        XCTAssertTrue(push.waitForExistence(timeout: 30))
+        push.tap()
+        let detail = app.descendants(matching: .any).matching(identifier: "nav3-detail").firstMatch
+        XCTAssertTrue(detail.waitForExistence(timeout: 30))
+    }
 }

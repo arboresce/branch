@@ -7,10 +7,15 @@ activity = "1.13.0"
 lifecycle = "2.10.0"
 coroutines = "1.10.2"
 jna = "5.18.1"
+navigation3 = "1.1.1"
+backdrop = "2.0.0-alpha03"
+coil = "3.5.0"
+serialization = "1.7.3"
 [plugins]
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "14.2.0" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-kmp = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
@@ -19,4 +24,8 @@ activity-compose = { module = "androidx.activity:activity-compose", version.ref 
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }

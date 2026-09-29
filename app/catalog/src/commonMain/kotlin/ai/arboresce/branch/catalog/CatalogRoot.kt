@@ -26,8 +26,11 @@ fun CatalogRoot() {
     Column(Modifier.fillMaxSize()) {
         BasicText("Catalog", Modifier.testTag("catalog-title"))
         BasicText("clock=${clock.nowMillis()}", Modifier.testTag("catalog-clock"))
-        Box(Modifier.height(96.dp)) { AppRoot(controller) }
+        Box(Modifier.height(72.dp)) { AppRoot(controller) }
         LazyColumn(Modifier.weight(1f).testTag("catalog-list")) {
+            item { CatalogNavigationProbe() }
+            item { CatalogGlassProbe() }
+            item { CatalogImageProbe() }
             items(CatalogFixtures.items, key = { it.id }) { item ->
                 BasicText(
                     "${item.id} | ${item.title} | ${item.subtitle}",

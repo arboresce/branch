@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose)
     alias(libs.plugins.android.kmp)
 }
@@ -27,7 +28,13 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
+            implementation(libs.navigation3.ui)
+            implementation(libs.backdrop)
+            implementation(libs.coil.compose)
         }
-        commonTest.dependencies { implementation(kotlin("test")) }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.serialization.json)
+        }
     }
 }
