@@ -102,6 +102,14 @@ content and its runtime smoke assertions. A synthetic fake may exercise successi
 updates; no unsupported Rust event API or background polling is required.
 
 Cancel disposed work, reject stale completions and avoid duplicate lifecycle loads.
+Cancellation may permit a later explicit load; disposal is terminal. A cancelled
+generation must not clear another generation's active state or permit overlapping
+native calls. Native calls that cannot be interrupted must remain serialized until
+they return, with obsolete results discarded. Each host and the catalog must own
+and release controller work explicitly; a controller-owned scope is cancelled on
+disposal without cancelling an externally supplied host scope. Retry from error
+enters loading and suppresses duplicate activation. Prove these transitions with
+controlled in-flight work and with visible updates in the same hosted UI instance.
 Cancellation is not a user-visible failure. Components receive state and callbacks;
 they do not access runtime handles. Verify successive iOS updates, shared error
 presentation, recreation and disposal without losing unrelated navigation state.

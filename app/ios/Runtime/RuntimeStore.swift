@@ -17,4 +17,12 @@ final class RuntimeStore: ObservableObject {
     func load() {
         controller.load()
     }
+
+    func cancel() {
+        controller.cancel()
+    }
+
+    func dispose() {
+        controller.dispose()
+    }
 }

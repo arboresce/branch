@@ -7,40 +7,47 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class RuntimeController(
     private val source: RuntimeSource,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val ownsScope: Boolean = false,
 ) {
     private val mutable = MutableStateFlow<DiagnosticPhase>(DiagnosticPhase.Loading)
     val phase: StateFlow<DiagnosticPhase> = mutable.asStateFlow()
+    private val nativeCall = Mutex()
     private var generation = 0
     private var active = false
+    private var disposed = false
     private var job: Job? = null
 
     fun load() {
-        if (active) return
+        if (disposed || active) return
         active = true
         val token = ++generation
+        mutable.value = DiagnosticPhase.Loading
         job =
             scope.launch {
                 val result =
                     try {
-                        withContext(dispatcher) { source.snapshot() }
+                        nativeCall.withLock { withContext(dispatcher) { source.snapshot() } }
                     } catch (cancellation: CancellationException) {
-                        active = false
+                        settle(token)
                         throw cancellation
                     } catch (_: Exception) {
                         null
                     }
-                active = false
-                apply(token, result)
+                settle(token)
+                publish(token, result)
             }
     }
 
@@ -51,13 +58,22 @@ class RuntimeController(
         job = null
     }
 
-    fun dispose() = cancel()
+    fun dispose() {
+        if (disposed) return
+        disposed = true
+        cancel()
+        if (ownsScope) scope.cancel()
+    }
 
-    internal fun apply(
+    private fun settle(token: Int) {
+        if (token == generation) active = false
+    }
+
+    private fun publish(
         token: Int,
         result: String?,
     ) {
-        if (token != generation) return
+        if (disposed || token != generation) return
         mutable.value =
             if (result == null) {
                 DiagnosticPhase.Error("Runtime unavailable")
@@ -67,4 +83,7 @@ class RuntimeController(
     }
 }
 
-fun createRuntimeController(source: RuntimeSource): RuntimeController = RuntimeController(source, MainScope())
+fun createRuntimeController(source: RuntimeSource): RuntimeController {
+    val scope = MainScope()
+    return RuntimeController(source, scope, ownsScope = true)
+}

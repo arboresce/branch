@@ -54,4 +54,24 @@ final class RuntimeControllerTests: XCTestCase {
         controller.load()
         waitForKind(controller, "error")
     }
+
+    func testCancelAllowsAnExplicitReload() {
+        let source = FakeRuntimeSource()
+        let controller = MainViewControllerKt.createDiagnosticController(source: source)
+        controller.load()
+        waitForContent(controller, "first")
+        controller.cancel()
+        source.value = "second"
+        controller.load()
+        waitForContent(controller, "second")
+    }
+
+    func testDisposalIsTerminal() {
+        let source = FakeRuntimeSource()
+        let controller = MainViewControllerKt.createDiagnosticController(source: source)
+        controller.dispose()
+        controller.load()
+        XCTAssertEqual(
+            MainViewControllerKt.diagnosticPhaseKind(controller: controller), "loading")
+    }
 }

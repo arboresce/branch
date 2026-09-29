@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ fun CatalogRoot() {
     val controller = remember { createRuntimeController(ScriptedRuntimeSource()) }
     val clock = remember { FixedCatalogClock() }
     LaunchedEffect(controller) { controller.load() }
+    DisposableEffect(controller) { onDispose { controller.dispose() } }
     Column(Modifier.fillMaxSize()) {
         BasicText("Catalog", Modifier.testTag("catalog-title"))
         BasicText("clock=${clock.nowMillis()}", Modifier.testTag("catalog-clock"))
