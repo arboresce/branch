@@ -12,6 +12,9 @@ _PLATFORM_ACTIONS = {
     "setup",
     "test",
     "dev",
+    "build-catalog",
+    "test-catalog",
+    "dev-catalog",
 }
 _NO_PLATFORM_ACTIONS = {
     "config-write",
@@ -20,8 +23,10 @@ _NO_PLATFORM_ACTIONS = {
     "env-check",
     "test-shared",
 }
-_CONFIGURATION_ACTIONS = {"build", "test"}
-_SDK_ACTIONS = {"build", "test"}
+_CONFIGURATION_ACTIONS = {"build", "test", "build-catalog", "test-catalog"}
+_SDK_ACTIONS = {"build", "test", "build-catalog", "test-catalog"}
+_TEST_ACTIONS = {"test", "test-catalog"}
+_BUILD_ACTIONS = {"build", "build-catalog"}
 
 
 def resolve(
@@ -42,12 +47,12 @@ def resolve(
         raise ValueError(f"{action} does not accept an sdk option")
     resolved_configuration = configuration or "debug"
     resolved_sdk = sdk or "simulator"
-    if action == "test":
+    if action in _TEST_ACTIONS:
         if platform == "android" and resolved_configuration != "debug":
             raise ValueError("Android instrumentation tests support only the debug configuration")
         if resolved_sdk != "simulator":
             raise ValueError("Device test execution is not supported; use a simulator or emulator")
-    if action == "build" and platform == "android" and resolved_sdk != "simulator":
+    if action in _BUILD_ACTIONS and platform == "android" and resolved_sdk != "simulator":
         raise ValueError("Android application builds do not support the device sdk")
     return platform, resolved_configuration, resolved_sdk
 
@@ -69,6 +74,9 @@ def main() -> None:
             "setup",
             "test",
             "dev",
+            "build-catalog",
+            "test-catalog",
+            "dev-catalog",
         ],
     )
     parser.add_argument("platform", choices=["ios", "android"], nargs="?")
@@ -112,6 +120,12 @@ def main() -> None:
             mobile.build(platform, configuration, sdk)
         elif args.action == "test":
             mobile.test(platform, configuration)
+        elif args.action == "build-catalog":
+            mobile.build_catalog(platform, configuration, sdk)
+        elif args.action == "test-catalog":
+            mobile.test_catalog(platform, configuration)
+        elif args.action == "dev-catalog":
+            mobile.dev_catalog(platform)
         else:
             getattr(mobile, args.action)(platform)
 

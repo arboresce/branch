@@ -25,6 +25,8 @@ fun module(
 }
 module("android/app", ":android:app")
 module("catalog", ":catalog")
+module("catalog/android", ":catalog:android")
+module("catalog/xc-framework", ":catalog:xc-framework")
 module("platform", ":platform")
 module("shared/app", ":shared:app")
 module("shared/xc-framework", ":shared:xc-framework")

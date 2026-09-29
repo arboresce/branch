@@ -11,15 +11,19 @@ from . import native
 from .config import ROOT, configure, contracts, output
 
 
-def environment(platform: str, build_native: bool = True) -> dict:
-    path = native.build(platform) if build_native else native.check(platform)
-    env = dict(
-        os.environ, BRANCH_ROOT=str(ROOT), BRANCH_BUILD_DIR=str(output()), BRANCH_NATIVE=str(path)
-    )
+def toolchain_environment() -> dict:
+    env = dict(os.environ, BRANCH_ROOT=str(ROOT), BRANCH_BUILD_DIR=str(output()))
     if not env.get("JAVA_HOME"):
         if sys.platform != "darwin":
             raise ValueError("Set JAVA_HOME to a JDK 21 installation")
         env["JAVA_HOME"] = native.capture("/usr/libexec/java_home", "-v", "21")
+    return env
+
+
+def environment(platform: str, build_native: bool = True) -> dict:
+    env = toolchain_environment()
+    path = native.build(platform) if build_native else native.check(platform)
+    env["BRANCH_NATIVE"] = str(path)
     if platform == "android":
         env["ANDROID_HOME"] = str(native.sdk())
     return env
@@ -99,13 +103,15 @@ def apple_environment(env: dict, configuration: str = "debug", sdk: str = "simul
     return env
 
 
-def xcode(env: dict, configuration: str, *args: str) -> None:
+def xcode(
+    env: dict, configuration: str, *args: str, project: Path | None = None, scheme: str = "Branch"
+) -> None:
     native.run(
         "xcodebuild",
         "-project",
-        str(output() / "ios/project/Branch.xcodeproj"),
+        str(project or (output() / "ios/project/Branch.xcodeproj")),
         "-scheme",
-        "Branch",
+        scheme,
         "-configuration",
         configuration.capitalize(),
         "-derivedDataPath",
@@ -345,6 +351,149 @@ def dev(platform: str) -> None:
                 serial,
                 "logcat",
                 "--pid=" + adb("shell", "pidof", bundle, serial=serial),
+            )
+
+
+def catalog_apple_environment(
+    env: dict, configuration: str = "debug", sdk: str = "simulator"
+) -> dict:
+    app = contracts()["application"]
+    architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
+    flavor = "debug" if configuration == "debug" else "release"
+    env.update(
+        BRANCH_IOS_MINIMUM_OS=contracts()["native-artifacts"]["ios"]["minimum_os"],
+        BRANCH_APP_VERSION=app["version"],
+        BRANCH_BUILD_NUMBER=str(app["version_code"]),
+        BRANCH_CATALOG_UI=str(
+            output()
+            / f"gradle/catalog/xc-framework/bin/{architecture}/{flavor}Framework/BranchCatalogUI.framework"
+        ),
+        BRANCH_COMPOSE_RESOURCES=str(
+            output()
+            / f"gradle/shared/xc-framework/kotlin-multiplatform-resources/aggregated-resources/{architecture}/composeResources"
+        ),
+        BRANCH_COMPOSE_BUNDLE=str(
+            output()
+            / "ios/derived/Build/Products"
+            / f"{configuration.capitalize()}-{'iphonesimulator' if sdk == 'simulator' else 'iphoneos'}"
+            / "BranchCatalog.app/compose-resources/composeResources"
+        ),
+    )
+    return env
+
+
+def catalog_project() -> Path:
+    project = output() / "ios/catalog-project"
+    project.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT / "app/catalog/ios/project.yml", project / "project.yml")
+    return project
+
+
+def build_catalog(platform: str, configuration: str = "debug", sdk: str = "simulator") -> dict:
+    env = toolchain_environment()
+    if platform == "android":
+        env["ANDROID_HOME"] = str(native.sdk())
+        gradle(env, f":catalog:android:assemble{configuration.capitalize()}")
+    else:
+        catalog_apple_environment(env, configuration, sdk)
+        architecture = "iosSimulatorArm64" if sdk == "simulator" else "iosArm64"
+        gradle(
+            env,
+            f":catalog:xc-framework:link{configuration.capitalize()}Framework{architecture}",
+            f":shared:xc-framework:assemble{architecture[0].upper()}{architecture[1:]}MainResources",
+        )
+        project = catalog_project()
+        native.run(
+            "xcodegen",
+            "generate",
+            "--spec",
+            str(project / "project.yml"),
+            "--project",
+            str(project),
+            env=env,
+        )
+        destination = (
+            "generic/platform=iOS Simulator" if sdk == "simulator" else "generic/platform=iOS"
+        )
+        xcode(
+            env,
+            configuration,
+            "-sdk",
+            "iphonesimulator" if sdk == "simulator" else "iphoneos",
+            "-destination",
+            destination,
+            "build",
+            project=project / "BranchCatalog.xcodeproj",
+            scheme="BranchCatalog",
+        )
+    return env
+
+
+def test_catalog(platform: str, configuration: str = "debug") -> None:
+    if platform == "android":
+        if configuration != "debug":
+            raise ValueError("Android instrumentation tests support only the debug configuration")
+        env = build_catalog("android", configuration)
+        with android_device() as serial:
+            env["ANDROID_SERIAL"] = serial
+            gradle(env, ":catalog:android:connectedDebugAndroidTest")
+    else:
+        env = build_catalog("ios", configuration)
+        with ios_device() as udid:
+            xcode(
+                env,
+                configuration,
+                "-destination",
+                f"platform=iOS Simulator,id={udid}",
+                "test",
+                project=catalog_project() / "BranchCatalog.xcodeproj",
+                scheme="BranchCatalog",
+            )
+
+
+def dev_catalog(platform: str) -> None:
+    env = build_catalog(platform)
+    if platform == "ios":
+        with ios_device() as udid:
+            native.run("open", "-a", "Simulator", "--args", "-CurrentDeviceUDID", udid)
+            native.run(
+                "xcrun",
+                "simctl",
+                "install",
+                udid,
+                str(
+                    output() / "ios/derived/Build/Products/Debug-iphonesimulator/BranchCatalog.app"
+                ),
+            )
+            native.run(
+                "xcrun",
+                "simctl",
+                "launch",
+                "--console-pty",
+                udid,
+                "ai.arboresce.branch.catalog",
+                env=env,
+            )
+    else:
+        with android_device() as serial:
+            apks = sorted((output() / "gradle/catalog/android/outputs/apk/debug").glob("*.apk"))
+            if not apks:
+                raise ValueError("Catalog Android APK is missing; run the catalog build")
+            adb("install", "-r", str(apks[0]), serial=serial)
+            adb(
+                "shell",
+                "am",
+                "start",
+                "-n",
+                "ai.arboresce.branch.catalog/.host.CatalogActivity",
+                serial=serial,
+            )
+            native.run(
+                str(native.sdk() / "platform-tools/adb"),
+                "-s",
+                serial,
+                "logcat",
+                "--pid=" + adb("shell", "pidof", "ai.arboresce.branch.catalog", serial=serial),
             )
 
 

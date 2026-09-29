@@ -16,6 +16,9 @@ containing this Makefile.
 | make setup-android / setup-ios | Prepare locked Python tools, platform Rust targets, settings, bindings and debug app |
 | make build-android / build-ios | Verify settings, build/reuse verified native artifacts and build the debug app |
 | make build-release-android | Build the release Android app variant; no signing identity is invented |
+| make build-catalog-android / build-catalog-ios | Build the separate development catalog application (`ai.arboresce.branch.catalog`) for Android or the iOS simulator |
+| make dev-catalog-android / dev-catalog-ios | Build, install and launch the catalog app; not a production build |
+| make test-catalog-android / test-catalog-ios | Run the catalog host rendering tests on an emulator or simulator |
 | make build-release-ios | Build and link the Release simulator framework and app |
 | make build-ios-device | Build the Release device framework and app where local signing/tooling permits |
 | make dev-android / dev-ios | Build, install and launch, retaining foreground console attachment |

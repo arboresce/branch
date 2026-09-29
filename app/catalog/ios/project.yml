@@ -1,0 +1,76 @@
+name: BranchCatalog
+options:
+  deploymentTarget:
+    iOS: "${BRANCH_IOS_MINIMUM_OS}"
+settings:
+  base:
+    ARCHS: arm64
+    SWIFT_VERSION: "6.0"
+    CODE_SIGNING_ALLOWED: NO
+    MARKETING_VERSION: "${BRANCH_APP_VERSION}"
+    CURRENT_PROJECT_VERSION: "${BRANCH_BUILD_NUMBER}"
+targets:
+  BranchCatalog:
+    type: application
+    platform: iOS
+    sources:
+      - path: ${BRANCH_ROOT}/app/catalog/ios/App
+    info:
+      path: BranchCatalog-Info.plist
+      properties:
+        CADisableMinimumFrameDurationOnPhone: true
+    dependencies:
+      - framework: ${BRANCH_CATALOG_UI}
+        embed: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.arboresce.branch.catalog
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "Branch Catalog"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        OTHER_LDFLAGS: "$(inherited) -lc++"
+    postCompileScripts:
+      - name: Compose resources
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - ${BRANCH_COMPOSE_RESOURCES}
+        outputFiles:
+          - ${BRANCH_COMPOSE_BUNDLE}
+        script: |
+          set -euo pipefail
+          rm -rf "${BRANCH_COMPOSE_BUNDLE}"
+          mkdir -p "${BRANCH_COMPOSE_BUNDLE}"
+          cp -R "${BRANCH_COMPOSE_RESOURCES}/." "${BRANCH_COMPOSE_BUNDLE}/"
+  BranchCatalogTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ${BRANCH_ROOT}/app/catalog/ios/Tests
+    dependencies:
+      - target: BranchCatalog
+    settings:
+      base:
+        FRAMEWORK_SEARCH_PATHS: ["$(inherited)", "${BRANCH_CATALOG_UI}/.."]
+        PRODUCT_BUNDLE_IDENTIFIER: ai.arboresce.branch.catalog.tests
+        GENERATE_INFOPLIST_FILE: YES
+  BranchCatalogUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ${BRANCH_ROOT}/app/catalog/ios/UITests
+    dependencies:
+      - target: BranchCatalog
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.arboresce.branch.catalog.uitests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  BranchCatalog:
+    build:
+      targets:
+        BranchCatalog: all
+    test:
+      targets:
+        - BranchCatalogTests
+        - BranchCatalogUITests
