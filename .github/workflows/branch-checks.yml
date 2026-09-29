@@ -1,0 +1,52 @@
+name: branch-checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make test-rust
+
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: uv sync --project tools/native-build --locked
+      - run: uv run --project tools/native-build --locked --no-sync branch-native config-check
+      - run: uv run --project tools/native-build --locked --no-sync branch-native contract-check
+      - run: uv run --project tools/native-build --locked --no-sync ruff check tools/native-build
+      - run: uv run --project tools/native-build --locked --no-sync ruff format --check tools/native-build
+      - run: uv run --project tools/native-build --locked --no-sync pytest tools/native-build/tests
+
+  apple:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: uv sync --project tools/native-build --locked
+      - run: make setup-ios
+      - run: make check-ios
+      - run: make test-shared
+      - run: make test-ios
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - run: uv sync --project tools/native-build --locked
+      - run: make setup-android
+      - run: make check-android
+      - uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          script: make test-android

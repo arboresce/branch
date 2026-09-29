@@ -49,7 +49,7 @@ platform_action() {
     esac
 }
 case "$1" in
-    help) printf '%s\n' 'doctor setup check test verify' 'setup-rust check-rust test-rust verify-rust' 'setup-ios dev-ios build-ios build-release-ios build-ios-device check-ios test-ios verify-ios' 'setup-android dev-android build-android build-release-android check-android test-android verify-android' ;;
+    help) printf '%s\n' 'doctor setup check test verify' 'setup-rust check-rust test-rust verify-rust' 'test-shared' 'setup-ios dev-ios build-ios build-release-ios build-ios-device check-ios test-ios verify-ios' 'setup-android dev-android build-android build-release-android check-android test-android verify-android' ;;
     doctor)
         cargo --version
         rustc --version
@@ -62,6 +62,7 @@ case "$1" in
     setup-rust) cargo fetch --locked ;;
     check-rust) check_rust ;;
     test-rust) cargo test --workspace --locked ;;
+    test-shared) asset branch-native test-shared ;;
     verify-rust)
         check_rust
         cargo test --workspace --locked

@@ -12,6 +12,7 @@ def main() -> None:
             "config-write",
             "config-check",
             "contract-check",
+            "test-shared",
             "build-native",
             "check-native",
             "lint",
@@ -28,6 +29,10 @@ def main() -> None:
     config.local_environment()
     if args.action.startswith("config-"):
         config.configure(args.action == "config-write")
+    elif args.action == "test-shared":
+        from . import mobile
+
+        mobile.test_shared()
     elif args.action == "contract-check":
         from . import inventory
 
