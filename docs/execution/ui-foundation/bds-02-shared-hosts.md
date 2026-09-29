@@ -1,6 +1,6 @@
 # BDS-02: Reactive shared hosts and verification harness
 
-Status: BDS-02.02/.04/.05 corrected, independent acceptance pending, 2026-09-29.
+Status: BDS-02.02/.04 third-review corrections committed, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
@@ -119,7 +119,58 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: R2-02, R2-04, R2-05 and R2-07 corrected; R2-03 corrected structurally with hosted execution NOT_RUN. Hosted CI, Linux execution, API 28 device execution and physical qualification remain NOT_RUN. The Backdrop pin decision is recorded in BDS-06 and BUI-08.
+Open failures/limits: R3-02/03/04 corrected pending independent acceptance. R2-03/05 are accepted within the local/structural boundary. Hosted CI, Linux execution, API 28 runtime execution and physical qualification remain NOT_RUN. The Backdrop pin decision is recorded in BDS-06 and BUI-08.
+
+## Third-review amendment (2026-09-29)
+
+Accept BDS-02.05's skip-aware, fresh per-module/target receipts, forced execution,
+retained Android/iOS results, catalog lint coverage and job-local CI prerequisites.
+Independent shared tests at `1f79aef` executed 14 application and 11 catalog cases
+per platform, with zero failures/errors/skips and both receipts retained. Hosted
+CI and Linux producer execution remain explicitly unrun; structural acceptance
+does not claim execution. Retain .01/.03 and the working lifecycle/race corrections.
+
+- R3-02 / BDS-02.02: the iOS catalog store defines `dispose()` but has no caller
+  or owner-removal teardown, unlike production. Finish terminal ownership and
+  prove owner removal cancels the controller-owned scope and rejects a blocked
+  completion/later loads; ordinary view disappearance/background must remain
+  resumable. Keep host events on the UI executor. Existing blocked-worker tests
+  are useful: make their releases/disposal failure-safe with bounded waits and
+  prove the resumed result is actually published before the test disposes it.
+- R3-03 / BDS-02.04: `glassCapabilityAvailable` has no runtime caller and the
+  gallery hardcodes capability true for the live surface. Thread real host
+  capability into the catalog/bridge; Android below API 31 cannot instantiate
+  the effect. Fixture overrides may force unavailable, never force unsupported
+  live rendering. Exercise that host path and effects-disabled rendering on both
+  available simulators. Give fallback text an explicit readable foreground;
+  the submitted Android capture shows black text on `#22242A`. Assert contrast
+  and inspect pixels, not only the presence of a tagged label. Retain alpha03,
+  current SDKs, Nav3 and Coil. Actual API 28 emulator execution belongs to the
+  explicit BDS-12 qualification case; leave it NOT_RUN until executed.
+- R3-04 / BDS-02.04: `compose-resources` can be an intermediate symlink. Both
+  the Python precheck and actual Xcode copy script accept it, and a disposable
+  outside-app sentinel is deleted by the script. Enforce canonical selected-app
+  containment and reject symlinks across existing destination ancestors and the
+  entire required source tree immediately before mutation. Reject effectively
+  empty inputs, including directories containing no regular resource files.
+  Centralize the guarded installer or prove equivalent enforcement in both
+  consumers. Execute the actual script/installer in isolated negative fixtures;
+  every outside-app sentinel must survive. Keep consumer-specific aggregation,
+  and verify production/catalog Debug and Release simulator plus unsigned device
+  resource matrices after the fix.
+
+R3-05 evidence/hygiene belongs to these same checkpoints: capture the actual glass
+and both readable fallbacks on each host after scrolling them into view. The
+submitted iOS screenshot contains no glass state, so cannot qualify that claim.
+Record source revision plus any dirty patch hash, configuration, host/OS, explicit
+fixture state, capture hash and command/result locations. Separate current receipts
+from older similarly named logs. Remove newly introduced explanatory source comments
+and docstrings to follow repository guidance; retain legal/generated directives.
+Move rationale into existing documentation. Include failure/limitation lists even
+when the positive tests pass. No final design styling is required in this harness.
+
+Only .02/.04 are reopened here. Preserve accepted work and all later inventories.
+Finish every independent runnable correction, then stop for independent review.
 
 ## Second-review amendment (2026-09-29)
 
@@ -344,7 +395,7 @@ Backdrop compatibility decision: `2.0.0-rc01`, `2.0.0` and `2.0.1` declare
 `minCompileSdk=37` in their AAR metadata and are incompatible with the contract's
 `compileSdk 36`; `2.0.0-alpha03` declares `minCompileSdk=36` (Compose 1.10.1,
 Kotlin 2.3.10) and compiles. This is a bounded incompatibility report, not a
-toolchain change; raising `compileSdk` to 37 remains a Codex decision.
+toolchain change. The approved alpha03/SDK 36 decision above controls subsequent work.
 
 BDS-02.05, commit `9379894`: `:shared:app` and `:catalog` enable the Android host
 test runner (`testAndroidHostTest`) alongside the iOS simulator runner; `test_shared`
@@ -489,6 +540,74 @@ Verification (Branch project directory, `cargo extbuild run --` router):
 | `make check-android` | ktlintCheck plus Android Lint for `:android:app` and `:catalog:android` |
 
 Hosted CI execution was not performed; no external runs were created.
+
+### Third corrective checkpoint record (2026-09-29)
+
+BDS-02.02, commit `c3522e6`: the iOS catalog owner is now terminally
+scoped. `CatalogStore` disposes its controller in `deinit`, matching the production
+store, without terminating on ordinary view disappearance or background. The common
+blocked-worker tests now use `runBlocking` with real worker threads, failure-safe
+`try/finally` release, and an awaited `awaitContent` assertion that the resumed
+result is published before disposal. A new `CatalogOwnerTests` case removes the iOS
+store, observes content, drops the owner, and proves a later load is rejected.
+
+BDS-02.04, commit `c3522e6`: real host capability reaches the rendered surface.
+`CatalogRoot`/`CatalogHost` take the Android `Build.VERSION.SDK_INT` capability and
+the iOS bridge reports its host capability; the gallery no longer hardcodes the live
+state. Fixtures can only force the opaque fallback, never an unsupported live effect.
+The fallback uses an explicit readable foreground (`#F5F5F5` on `#22242A`), asserted
+by a contrast test and an Android instrumentation pixel test.
+
+Resource installation now runs through one guarded installer,
+`scripts/install-compose-resources.sh`, invoked by both iOS consumers. It rejects
+symlinked destinations and destination ancestors, escaping destinations, symlinked
+or missing source trees and source trees with no regular resource files immediately
+before mutation. `mobile.verify_compose_resources` mirrors the policy and is
+exercised by isolated negative tests; the actual installer is executed in isolated
+fixtures and every outside-app sentinel survives.
+
+R3-05: newly introduced explanatory source comments/docstrings were removed to match
+the repository guidance. Fresh captures and receipts are listed below; older
+similarly named logs are not used.
+
+Verification (Branch project directory, `cargo extbuild run --` router, exit 0):
+
+| Command | Result |
+| --- | --- |
+| `pytest tools/native-build/tests` | 135 passed, including installer sentinel and source-tree containment cases |
+| `make check-ios` / `make check-android` | ktlint, swift-format, catalog Swift and catalog Android Lint pass |
+| `:shared:app:testAndroidHostTest` / `:shared:app:iosSimulatorArm64Test` | 14 executed each, 0 skipped/failed |
+| `:catalog:testAndroidHostTest` / `:catalog:iosSimulatorArm64Test` | 12 executed each, 0 skipped/failed |
+| `make test-ios` | 8 XCTest + 2 UI, 0 failed |
+| `make test-android` | 4 instrumentation, 0 failed |
+| `make test-catalog-ios` | 2 unit + 6 UI, 0 failed |
+| `make test-catalog-android` | 8 instrumentation, 0 failed |
+| `make verify-rust` | formatting, check, Clippy and Rust tests pass |
+
+Resource matrix after the fix:
+
+| Consumer | Debug simulator | Release simulator | Unsigned device |
+| --- | --- | --- | --- |
+| Production `Branch.app` | `ai.arboresce.branch.ui.resources` only | same | same |
+| Catalog `BranchCatalog.app` | `ai.arboresce.branch.ui.resources` + `ai.arboresce.branch.catalog.resources` | same | same |
+| Production Android APK | no `catalog.resources` assets | same | n/a (unsigned) |
+| Catalog Android APK | both `ui.resources` and `catalog.resources` | n/a | n/a |
+
+Capture receipts (workstation convenience paths, not portable artifacts):
+
+| Capture | Configuration / host | SHA-256 |
+| --- | --- | --- |
+| `/tmp/pi-bds3-captures/android-glass-gallery.png` | Android 16 / API 36 `branch_development` emulator, catalog debug, gallery scrolled into view | `242460739f2d17c0694c0474e9174432e0b4bb200ea451d14d9406d17bd225c5` |
+| `/tmp/pi-bds3-captures/ios-glass-gallery.png` | iOS 26.5 simulator (`Branch Development`), catalog debug, gallery scrolled into view | `70d6724c9a9effc44b3d58d3c683363ac47dd96a9e7f8b8d47ec1c48899787e4` |
+
+Both captures contain the patterned live surface, both opaque fallbacks and white
+fallback text; host-side pixel analysis found the `#22242A` fallback background and
+the four source pattern colours in each. Logs: `/tmp/pi-bds3-test-catalog-android.log`,
+`/tmp/pi-bds3-test-catalog-ios.log`.
+
+Limits: hosted CI, Linux producer execution and actual API 28 emulator execution
+remain NOT_RUN; the API 28 fallback is exercised only at the capability-policy level
+here and belongs to BDS-12.04. No signed distribution or physical device was used.
 
 ## Sequence
 
