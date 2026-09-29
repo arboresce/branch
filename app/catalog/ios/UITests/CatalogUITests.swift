@@ -19,4 +19,13 @@ final class CatalogUITests: XCTestCase {
         let detail = app.descendants(matching: .any).matching(identifier: "nav3-detail").firstMatch
         XCTAssertTrue(detail.waitForExistence(timeout: 30))
     }
+
+    func testImageProbeResolvesDeterministicSuccessAndError() {
+        let app = XCUIApplication()
+        app.launch()
+        let error = app.descendants(matching: .any).matching(identifier: "image-error").firstMatch
+        XCTAssertTrue(error.waitForExistence(timeout: 30))
+        let success = app.descendants(matching: .any).matching(identifier: "image-success").firstMatch
+        XCTAssertTrue(success.waitForExistence(timeout: 30))
+    }
 }

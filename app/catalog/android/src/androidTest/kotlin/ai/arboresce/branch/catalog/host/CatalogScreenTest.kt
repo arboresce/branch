@@ -25,4 +25,14 @@ class CatalogScreenTest {
         compose.onNodeWithTag("nav3-push").performClick()
         compose.onNodeWithTag("nav3-detail").assertIsDisplayed()
     }
+
+    @Test
+    fun imageProbeResolvesDeterministicSuccessAndError() {
+        compose.onNodeWithTag("catalog-list").performScrollToNode(hasTestTag("image-probe"))
+        compose.waitUntil(20_000) {
+            compose.onAllNodes(hasTestTag("image-success")).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("image-success").assertIsDisplayed()
+        compose.onNodeWithTag("image-error").assertIsDisplayed()
+    }
 }
