@@ -1,10 +1,10 @@
 # BDS-00: Contracts and baseline
 
-Status: correction complete, independent acceptance pending, 2026-09-29.
+Status: second-review correction complete, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-12, BUI-01, BUI-02.
 Prerequisites: None; first execution unit.
-Next action: await Codex gate arbi-6v62.19 acceptance, then proceed only after the private asset gate.
+Next action: await independent acceptance; retain the corrected BDS-01/02 checkpoints.
 
 ## Scope
 
@@ -37,7 +37,7 @@ No new service contract is owned by this unit.
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
 | BDS-00.01 | complete | Approve public contract mapping | V0 |
-| BDS-00.02 | complete | Correct inventory authority validation | V0, V1 |
+| BDS-00.02 | complete | Complete inventory authority validation | V0, V1 |
 | BDS-00.03 | complete | Record actual baseline and historical context | V0, V1, V6 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
@@ -86,9 +86,23 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: submitted commits `0d06e44`, `2e1d29e`, `c0ebef4`; BDS-00.02 corrected at `78bdb0c` on 2026-09-29.
+Checkpoint evidence: submitted commits `0d06e44`, `2e1d29e`, `c0ebef4`; BDS-00.02 first corrected at `78bdb0c` and second-corrected in the 2026-09-29 batch.
 Current implementation slice: none.
-Open failures/limits: F07 corrected; F08/F09 are owned by BDS-01. Independent Codex acceptance remains open at arbi-6v62.19.
+Open failures/limits: R2-06 corrected in the second-review batch. Independent acceptance remains pending; this record is not an acceptance claim.
+
+## Second-review amendment (2026-09-29)
+
+R2-06 / BDS-00.02: the validator still accepts a checkpoint section moved to a
+different plan than its table, missing `Verify lane:` definitions, and broken
+Markdown links from a plan to its authority. Complete the existing requirement:
+pair table and section in the same owning file; require nonempty scope, green
+criteria and recognized verification lanes; validate repository-local plan/spec
+links and their anchors. Reject each observed case in isolated fixtures. Preserve
+the existing 92/10/65/12 mapping and the now-correct orphan/duplicate checks.
+
+Execution evidence must distinguish submitted claims from independent acceptance.
+Keep all public documentation, source, fixtures and commit metadata self-contained;
+coordination details from outside this repository do not belong in these files.
 
 ## Review amendment (2026-09-29)
 
@@ -124,6 +138,28 @@ Verification (Branch project directory, all exit 0):
 | Command | Result |
 | --- | --- |
 | `pytest tools/native-build/tests` | 78 passed; five added inventory rejection/count cases |
+| `branch-native contract-check` | `{"checkpoints":65,"components":92,"requirements":12,"services":10}` |
+| `ruff check` / `ruff format --check tools/native-build` | clean |
+
+No component behavior is claimed implemented because the inventory passes.
+
+### Second corrective checkpoint record (2026-09-29)
+
+BDS-00.02: the inventory validator now pairs each ordered checkpoint table row
+with a section in the same owning plan file and rejects a section moved to a
+different plan. It requires each section to carry nonempty `Scope:` and
+`Definition of green:` clauses plus a recognized, nonempty `Verify lane:`
+(`V0`-`V6`), and it rejects unknown lanes in both the table and the section. It
+validates repository-local Markdown links from the specification and every plan,
+including resolved heading anchors, so a broken plan-to-spec link or anchor now
+fails. The orphan-mention, duplicate-definition and 92/10/65/12 assertions are
+unchanged.
+
+Verification (Branch project directory, `cargo extbuild run --` router, all exit 0):
+
+| Command | Result |
+| --- | --- |
+| `pytest tools/native-build/tests` | 84 passed; added moved-section, missing/unknown verify-lane, empty-scope, broken-link and broken-anchor rejection cases |
 | `branch-native contract-check` | `{"checkpoints":65,"components":92,"requirements":12,"services":10}` |
 | `ruff check` / `ruff format --check tools/native-build` | clean |
 

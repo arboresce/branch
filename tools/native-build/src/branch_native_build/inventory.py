@@ -10,6 +10,10 @@ _CHECKPOINT = re.compile(r"BDS-[0-9]{2}\.[0-9]{2}")
 _CHECKPOINT_SECTION = re.compile(r"^#{2,3}\s+(BDS-[0-9]{2}\.[0-9]{2}):\s*(.*)$", re.MULTILINE)
 _REQUIREMENT_SECTION = re.compile(r"^##\s+(BUI-[0-9]{2}):\s*(.*)$", re.MULTILINE)
 _NEXT_HEADING = re.compile(r"\n#{2,3}\s")
+_MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+_MARKDOWN_HEADING = re.compile(r"^#{1,6}\s+(.*)$", re.MULTILINE)
+_VERIFY_LANE = re.compile(r"Verify lane:\s*([^\n]+)")
+_VERIFICATION_LANES = frozenset({"V0", "V1", "V2", "V3", "V4", "V5", "V6"})
 _PLAN_DIRECTORY = "docs/execution/ui-foundation"
 _SPEC = "docs/spec/ui-foundation.md"
 _WORDS = {
@@ -64,6 +68,23 @@ def _section_body(text: str, end: int) -> str:
     return remainder if following is None else remainder[: following.start()]
 
 
+def _verification_lanes(value: str, identifier: str) -> tuple[str, ...]:
+    head = value.split(".", 1)[0]
+    lanes = tuple(re.findall(r"V[0-9]+", head))
+    if not lanes:
+        raise ValueError(f"Missing verification lane: {identifier}")
+    unknown = sorted({lane for lane in lanes if lane not in _VERIFICATION_LANES})
+    if unknown:
+        raise ValueError(f"Unknown verification lane {unknown[0]}: {identifier}")
+    return lanes
+
+
+def _clause(body: str, label: str) -> str | None:
+    pattern = rf"{re.escape(label)}:(.*?)(?=\n(?:Scope:|Definition of green:|Verify lane:)|\Z)"
+    match = re.search(pattern, body, re.DOTALL)
+    return None if match is None else match.group(1)
+
+
 def _checkpoint_definitions(root: Path) -> set[str]:
     directory = root / _PLAN_DIRECTORY
     tables: dict[str, Path] = {}
@@ -77,6 +98,7 @@ def _checkpoint_definitions(root: Path) -> set[str]:
             identifier = cells[0]
             if len(cells) < 4 or not cells[2] or not cells[3]:
                 raise ValueError(f"Incomplete checkpoint table row: {identifier}")
+            _verification_lanes(cells[3], identifier)
             if identifier in tables:
                 raise ValueError(f"Duplicate checkpoint definition: {identifier}")
             tables[identifier] = path
@@ -87,15 +109,24 @@ def _checkpoint_definitions(root: Path) -> set[str]:
             if identifier in sections:
                 raise ValueError(f"Duplicate checkpoint definition: {identifier}")
             body = _section_body(text, match.end())
-            if "Scope:" not in body or "Definition of green:" not in body:
+            scope = _clause(body, "Scope")
+            green = _clause(body, "Definition of green")
+            if not scope or not scope.strip() or not green or not green.strip():
                 raise ValueError(f"Incomplete checkpoint section definition: {identifier}")
+            lane = _VERIFY_LANE.search(body)
+            if not lane:
+                raise ValueError(f"Missing verification lane: {identifier}")
+            _verification_lanes(lane.group(1), identifier)
             sections[identifier] = path
     if not tables:
         raise ValueError("Missing planning authority for inventory references")
-    table_only = sorted(set(tables) - set(sections))
+    for identifier, table_path in tables.items():
+        section_path = sections.get(identifier)
+        if section_path is None:
+            raise ValueError(f"Checkpoint table row lacks a matching section: {identifier}")
+        if section_path != table_path:
+            raise ValueError(f"Checkpoint table and section are not in the same plan: {identifier}")
     section_only = sorted(set(sections) - set(tables))
-    if table_only:
-        raise ValueError(f"Checkpoint table row lacks a matching section: {table_only[0]}")
     if section_only:
         raise ValueError(f"Checkpoint section lacks a matching table row: {section_only[0]}")
     return set(tables)
@@ -122,6 +153,32 @@ def _reference(root: Path, source: Path, value: str) -> None:
         raise ValueError(f"Broken local reference: {value}")
 
 
+def _slug(heading: str) -> str:
+    without_punctuation = re.sub(r"[^\w\s-]", "", heading.strip().lower())
+    return re.sub(r"\s+", "-", without_punctuation).strip("-")
+
+
+def _anchors(text: str) -> set[str]:
+    return {_slug(match.group(1)) for match in _MARKDOWN_HEADING.finditer(text)}
+
+
+def _validate_links(root: Path, source: Path) -> None:
+    root_resolved = root.resolve()
+    for match in _MARKDOWN_LINK.finditer(source.read_text()):
+        raw = match.group(1)
+        if raw.startswith(("http://", "https://", "mailto:")):
+            continue
+        path_part, _, anchor = raw.partition("#")
+        if path_part:
+            target = (source.parent / path_part).resolve()
+            if not target.is_file() or root_resolved not in target.parents:
+                raise ValueError(f"Broken local reference: {raw}")
+        else:
+            target = source
+        if anchor and anchor not in _anchors(target.read_text()):
+            raise ValueError(f"Broken local anchor: {raw}")
+
+
 def validate(root: Path = ROOT) -> dict:
     components = _contract(root, "ui-components")
     services = _contract(root, "platform-services")
@@ -142,6 +199,9 @@ def validate(root: Path = ROOT) -> dict:
     )
     checkpoints = _checkpoint_definitions(root)
     requirements = _requirement_definitions(root)
+    _validate_links(root, root / _SPEC)
+    for path in sorted((root / _PLAN_DIRECTORY).glob("*.md")):
+        _validate_links(root, path)
     for name, data, key in (
         ("ui-components", components, "components"),
         ("platform-services", services, "services"),
