@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 
 from . import config, native
 
@@ -12,7 +13,13 @@ _PLATFORM_ACTIONS = {
     "test",
     "dev",
 }
-_NO_PLATFORM_ACTIONS = {"config-write", "config-check", "contract-check", "test-shared"}
+_NO_PLATFORM_ACTIONS = {
+    "config-write",
+    "config-check",
+    "contract-check",
+    "env-check",
+    "test-shared",
+}
 _CONFIGURATION_ACTIONS = {"build", "test"}
 _SDK_ACTIONS = {"build", "test"}
 
@@ -53,6 +60,7 @@ def main() -> None:
             "config-write",
             "config-check",
             "contract-check",
+            "env-check",
             "test-shared",
             "build-native",
             "check-native",
@@ -84,6 +92,17 @@ def main() -> None:
         from . import inventory
 
         print(json.dumps(inventory.validate(), sort_keys=True))
+    elif args.action == "env-check":
+        from . import environment
+
+        problems = environment.environment_problems(
+            config.ROOT / "tools/native-build/uv.lock", environment.installed_versions()
+        )
+        for problem in problems:
+            print(problem, file=sys.stderr)
+        if problems:
+            raise SystemExit(1)
+        print("Python tool environment is synchronized with the lockfile")
     elif args.action in {"build-native", "check-native"}:
         print(native.build(platform) if args.action == "build-native" else native.check(platform))
     else:
