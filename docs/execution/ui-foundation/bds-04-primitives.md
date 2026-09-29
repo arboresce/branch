@@ -84,9 +84,9 @@ Verify lane: V2, V3, V4. Resolve exact commands from [developer commands](../../
 
 ### BDS-04.06: Screen/form scaffolds and diagnostic consumption
 
-Scope: Implement C077–C079 with one inset owner; migrate diagnostic styling to public shared APIs.
+Scope: Implement C077–C079 with one inset owner; migrate diagnostic styling to public shared APIs. Qualify the catalog's native viewport before approving geometry samples, including its iOS launch/scene metadata relative to the production host.
 
-Definition of green: System/keyboard/overlay inset tests pass without double padding; runtime snapshot remains selectable and scrollable.
+Definition of green: System/keyboard/overlay inset tests pass without double padding; runtime snapshot remains selectable and scrollable. Measure actual window/content/safe-area bounds and resolve unintended compatibility framing or clipped catalog content rather than masking it in screenshots. The initial iOS probe capture's large black margins are not an approved screen baseline; its built plist lacks launch/scene keys present in production, which is a starting point for diagnosis rather than a measured root-cause conclusion.
 
 Verify lane: V2, V3, V4. Resolve exact commands from [developer commands](../../development/commands.md) and the actual task graph. New commands must be implemented/documented before being recorded as run.
 
@@ -112,4 +112,3 @@ Open failures/limits: implementation not started.
 ## Sequence
 
 [BDS-00](bds-00-contracts.md) · [BDS-01](bds-01-native-build.md) · [BDS-02](bds-02-shared-hosts.md) · [BDS-03](bds-03-theme.md) · [BDS-04](bds-04-primitives.md) · [BDS-05](bds-05-navigation.md) · [BDS-06](bds-06-glass.md) · [BDS-07](bds-07-editing.md) · [BDS-08](bds-08-controls.md) · [BDS-09](bds-09-patterns.md) · [BDS-10](bds-10-platform.md) · [BDS-11](bds-11-media.md) · [BDS-12](bds-12-simulator-qualification.md) · [BDS-13](bds-13-device-qualification.md)
-

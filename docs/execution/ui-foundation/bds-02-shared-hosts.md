@@ -1,10 +1,10 @@
 # BDS-02: Reactive shared hosts and verification harness
 
-Status: BDS-02.02/.04 third-review corrections committed, independent acceptance pending, 2026-09-29.
+Status: BDS-02.04 accepted; BDS-02.02/.05 require fourth-review harness corrections, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
-Next action: await independent acceptance at the acceptance gate before BDS-03 or assets.
+Next action: complete BDS-02.02/.05 fourth-review corrections and return for acceptance before BDS-03 or assets.
 
 ## Scope
 
@@ -50,10 +50,10 @@ No new service contract is owned by this unit.
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
 | BDS-02.01 | complete | Introduce compiling module boundaries | V0, V2 |
-| BDS-02.02 | complete | Complete lifecycle resumption and race evidence | V2, V3 |
+| BDS-02.02 | planned | Complete lifecycle resumption and race evidence | V2, V3 |
 | BDS-02.03 | complete | Launch the independent deterministic catalog | V2, V3 |
 | BDS-02.04 | complete | Qualify glass and consumer resource delivery | V2, V3 |
-| BDS-02.05 | complete | Close runner, CI and catalog-check gaps | V0, V2, V3 |
+| BDS-02.05 | planned | Close bounded emulator cleanup gap | V0, V2, V3 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -119,7 +119,69 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: R3-02/03/04 corrected pending independent acceptance. R2-03/05 are accepted within the local/structural boundary. Hosted CI, Linux execution, API 28 runtime execution and physical qualification remain NOT_RUN. The Backdrop pin decision is recorded in BDS-06 and BUI-08.
+Open failures/limits: R4-03/04/07 harness corrections below remain open. R3-03/04/05 are accepted within the prototype boundary; host disposal code is retained. Hosted CI, Linux execution, API 28 runtime execution and physical qualification remain NOT_RUN.
+
+## Fourth-review amendment (2026-09-29)
+
+Accept BDS-02.04 at `c3522e6` with its `2a61352` receipt. Android SDK capability
+now reaches the gallery, both readable fallback branches are visible in both
+hash-matched captures, and the shared actual installer rejects the demonstrated
+intermediate-symlink escape. Retain per-consumer resources, negative installer
+fixtures, the fixed foreground and all existing dependency pins. The iOS bridge's
+supported-baseline capability is accepted for this pinned compatibility probe;
+general device/accessibility/source-loss policy remains BDS-06/10/13. These captures
+qualify the probe, not final screen geometry or physical performance.
+
+BDS-02.02 retains the new `CatalogStore.deinit` implementation but needs meaningful
+and bounded verification:
+
+- R4-03: `CatalogOwnerTests` loads content, removes the store, calls load again,
+  then only waits for content. An isolated build with just `CatalogStore.deinit`
+  removed still passes this exact test. Add a development-only injectable source/
+  controller seam as needed. Observe source invocation count and published payload
+  (including distinct revisions), assert actual owner release, and hold work
+  in flight while removing the owner. After release, prove no stale publication,
+  no new source invocation on later loads and retained terminal state. Keep the
+  ordinary background/resume behavior. The test must fail when owner disposal is
+  deliberately omitted in an isolated mutation fixture, then pass on corrected
+  source. A compilation failure is not the required negative proof.
+- R4-04: common tests use `runBlocking` with a multi-thread `Dispatchers.Default`
+  controller scope, unbounded `started.receive()` and an unbounded spinning fake.
+  Only the final content wait has a deadline. This changes the controller's real
+  serialized ownership model and can hang before cleanup. Keep controller calls
+  and orchestration on one controlled executor; use a separate worker only for
+  the blocking source. Bound the whole scenario, each start/completion wait and
+  worker blocking; release gates and cancel/join scopes in `finally`, including
+  the disposal test. Keep awaited resumed publication. Prove missing-start and
+  withheld-completion regressions fail within a recorded wall-clock bound, without
+  an external process kill or a leaked worker. Do not add locks to production
+  solely to accommodate a test's different ownership model.
+
+Return positive/negative test receipts for these exact defects, including the
+mutation or injection, expected assertion/timeout, elapsed time and restored-source
+positive run. Existing test counts alone do not demonstrate the regression is
+detected. Mutation fixtures stay outside the checkout and normal shipped code;
+leave no sabotage in committed source. Retain .01/.03/.04 and do not redo the
+resource installer or glass integration.
+
+R4-07 / BDS-02.05: the independent Android catalog run executed eight tests with
+zero failures/skips and Gradle succeeded, but the Make command exited 2. Its owned
+emulator did not exit after the 20-second graceful wait and 10-second terminate
+wait; the second `TimeoutExpired` escaped and the process initially remained alive.
+Complete bounded owned-process teardown: bound the ADB shutdown request, wait a
+grace period, terminate and wait, then kill/reap only the process this context
+started if still necessary. Never shut down a caller-supplied device or use a
+global process-name kill. Preserve the original test failure when cleanup also
+fails, reporting cleanup separately. Test graceful exit, ignored termination,
+borrowed-device preservation and failure propagation with isolated processes;
+run the full normal catalog command to a truthful final exit. Existing receipts,
+CI prerequisites and catalog lint coverage remain accepted and must be preserved.
+
+Two later qualification obligations remain with their existing owners: investigate
+the iOS catalog viewport/launch metadata before BDS-04.06 layout baselines, and
+adapt the current unconditional live-pixel assertion to expect opaque rendering
+on API 28 under BDS-12.04. Neither expands this corrective batch into later design
+implementation or establishes minimum-API runtime qualification today.
 
 ## Third-review amendment (2026-09-29)
 

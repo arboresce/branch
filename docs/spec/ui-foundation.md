@@ -91,6 +91,11 @@ stale environments with actionable diagnostics and do not repair them. New
 checks must work from an independent checkout using documented public tools and
 committed resources. A declaration of `commonTest` without executed tests fails.
 
+Verification commands release only emulator processes they started, using bounded
+shutdown/termination and preserving caller-owned targets. Preserve the primary
+test failure if teardown also fails. Passing assertions do not make the complete
+command green when cleanup fails or leaves its owned process running.
+
 Resource installation validates the selected app and every existing destination
 ancestor before deletion/copy. A lexical app-relative path is insufficient when
 an intermediate directory is a symlink. Reject symlinked source trees, escaping
@@ -120,6 +125,11 @@ An inactive/background owner cancels its request and resumes with one explicit
 load when active again. A transient view disappearance is not terminal disposal
 of an owner that will be reused. Terminal disposal follows owner removal; host and
 catalog implementations must make that lifetime explicit and test resumption.
+Concurrency tests must preserve the host's serialized controller ownership while
+running blocking native fakes on a separate worker. Bound every wait and guarantee
+worker release and scope cleanup on assertion failure or timeout. Owner-removal
+tests must detect omitted disposal through observable work/results, not merely
+wait for a phase that both disposed and undisposed controllers can reach.
 Cancellation is not a user-visible failure. Components receive state and callbacks;
 they do not access runtime handles. Verify successive iOS updates, shared error
 presentation, recreation and disposal without losing unrelated navigation state.

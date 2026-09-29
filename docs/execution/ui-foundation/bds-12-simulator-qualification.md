@@ -73,6 +73,12 @@ Scope: Use independent public context and documented commands to run both hosts,
 
 Definition of green: Nonzero suites and real runtime smoke tests pass; selected resources/configurations match; source stays independent of other checkouts. API 28 launches and renders the readable fallback without creating unsupported effects. A newer emulator with injected capability and a policy-only test are distinct evidence and cannot close this runtime case; unavailable execution leaves this checkpoint open.
 
+The initial Android catalog pixel test unconditionally expects a non-fallback live
+surface. Make that assertion capability-aware before the API 28 run: the actual
+host-selected surface must be opaque below API 31 and use the approved live path
+where supported. Run and report both minimum-API and modern-API cases; never make
+the test green by bypassing the fallback policy or skipping the minimum case.
+
 Verify lane: V1, V2, V3, V6. Resolve exact commands from [developer commands](../../development/commands.md) and the actual task graph. New commands must be implemented/documented before being recorded as run.
 
 ### BDS-12.05: Issue simulator qualification record
