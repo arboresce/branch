@@ -18,6 +18,18 @@ SDK identity. A manifest verifies every output byte; a source change during gene
 aborts installation. Writes stage beside the final cohort and rename only after
 verification. Existing mismatched cohorts are never silently repaired.
 
+Cohort identity describes the effective build. `CARGO_PROFILE_RELEASE_OPT_LEVEL` is
+the one supported release-profile override; unset normalizes to `3` and other values
+are rejected. Any other `CARGO_PROFILE_RELEASE_*` override (`LTO`, `DEBUG`, `PANIC`
+and similar) is rejected before cache lookup rather than leaking into the producer.
+Recorded semantic inputs include compiler and wrapper selection (`RUSTC`,
+`RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`), flag variables (`RUSTFLAGS`,
+`CARGO_ENCODED_RUSTFLAGS`, `CARGO_BUILD_RUSTFLAGS`), per-target linker and rustflag
+overrides and an existing `.cargo/config.toml`. Output and cache locations such as
+`CARGO_TARGET_DIR`, `BRANCH_BUILD_DIR` and `BRANCH_NATIVE` are explicitly not
+semantic inputs. Identity and subprocess execution share the same validated policy;
+the whole host environment is never hashed and credentials are never printed.
+
 Gradle versions live in app/gradle/libs.versions.toml and the wrapper properties. Resolution
 locks and verification-metadata.xml are committed. contracts/native-settings.properties
 is a deterministic projection; Python checks compare its exact bytes. Android's

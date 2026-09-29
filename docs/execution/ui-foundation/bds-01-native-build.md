@@ -1,16 +1,17 @@
 # BDS-01: Native integrity and build profiles
 
-Status: implemented and locally verified; independent review pending.
+Status: correction required after independent review, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-01, BUI-02.
 Prerequisites: [BDS-00](bds-00-contracts.md).
-Next action: inspect current authority and working-tree state, then execute BDS-01.01 after prerequisites are verified.
+Next action: after the BDS-00 correction, complete the reopened checkpoints under the review amendment below.
 
 ## Scope
 
 - `tools/native-build/src/branch_native_build/native.py`
 - `tools/native-build/src/branch_native_build/config.py`
 - `tools/native-build/src/branch_native_build/mobile.py`
+- `tools/native-build/src/branch_native_build/cli.py`
 - `tools/native-build/tests/`
 - `contracts/native-artifacts.toml and its schema/settings projection`
 - `app/ios/project.yml`
@@ -33,10 +34,10 @@ No new service contract is owned by this unit.
 
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
-| BDS-01.01 | complete | Control effective native configuration | V1 |
+| BDS-01.01 | planned | Complete effective native configuration policy | V1 |
 | BDS-01.02 | complete | Close manifest integrity gap | V1 |
-| BDS-01.03 | complete | Separate native UI build profiles | V1, V2 |
-| BDS-01.04 | complete | Make environment setup reproducible | V1, V6 |
+| BDS-01.03 | planned | Correct explicit build/test profile routing | V1, V2 |
+| BDS-01.04 | planned | Verify locked environment freshness | V1, V6 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -92,9 +93,41 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: complete (commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`).
+Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; only BDS-01.02 remains accepted as complete.
 Current implementation slice: none.
-Open failures/limits: independent Codex review pending; hosted CI lanes not executed locally.
+Open failures/limits: F01, F08 and F09 below; hosted CI remains unexecuted.
+
+## Review amendment (2026-09-29)
+
+- F01 / BDS-01.01: changing `CARGO_PROFILE_RELEASE_LTO`,
+  `CARGO_PROFILE_RELEASE_DEBUG` or `CARGO_PROFILE_RELEASE_PANIC` leaves the cohort
+  identity unchanged while the producer inherits those variables. Adopt a bounded
+  effective-input policy: retain the approved optimization override, reject other
+  unsupported profile overrides, and normalize or reject compiler, wrapper,
+  target/linker/flags, SDK and applicable Cargo-config inputs before cache lookup.
+  Explicitly distinguish output/cache paths from semantic inputs. Use the same
+  policy for identity and subprocess execution; never hash the whole environment
+  or print credentials. Add meaningful regressions beyond the original two cases,
+  including stale cohort reuse and equivalent supported settings. Preserve the
+  deployment-target and nested-manifest fixes.
+- F09 / BDS-01.03: requesting Android Release tests currently builds Release but
+  executes `connectedDebugAndroidTest`. Until a separate Release instrumentation
+  lane is specified, reject non-Debug Android test requests before building.
+  Reject SDK/configuration arguments unsupported by an action instead of silently
+  ignoring them. Preserve all three new Release/device build commands and prove
+  their framework/resource routing with invocation tests and host builds.
+- F08 / BDS-01.04: importing `jsonschema` and `pytest` does not establish a locked,
+  current Python environment or availability of Ruff. Add non-repairing lock and
+  exact environment freshness checks using the selected environment. Missing,
+  stale and synchronized fixtures must respectively fail, fail and pass without
+  modifying dependencies, locks or contracts. Setup alone prepares dependencies.
+
+Bounded portability amendment supporting BDS-02 CI: support the native Android
+producer on Linux x86_64 as well as the existing macOS host. Resolve the NDK host
+tool directory and host bindgen library suffix explicitly; reject unsupported
+hosts with actionable errors. Preserve target ABI mappings and macOS behavior.
+Do not add Windows support, change mobile minimum OS versions or acquire runners.
+Record Linux execution separately from command-construction tests on macOS.
 
 ## Checkpoint record
 
@@ -137,4 +170,3 @@ and release overrides were exercised through fixtures; no physical device was us
 ## Sequence
 
 [BDS-00](bds-00-contracts.md) · [BDS-01](bds-01-native-build.md) · [BDS-02](bds-02-shared-hosts.md) · [BDS-03](bds-03-theme.md) · [BDS-04](bds-04-primitives.md) · [BDS-05](bds-05-navigation.md) · [BDS-06](bds-06-glass.md) · [BDS-07](bds-07-editing.md) · [BDS-08](bds-08-controls.md) · [BDS-09](bds-09-patterns.md) · [BDS-10](bds-10-platform.md) · [BDS-11](bds-11-media.md) · [BDS-12](bds-12-simulator-qualification.md) · [BDS-13](bds-13-device-qualification.md)
-

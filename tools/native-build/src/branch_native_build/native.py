@@ -12,6 +12,17 @@ from .config import ROOT, configure, contracts, digest, output
 
 SCHEMA_VERSION = 2
 _OPT_LEVELS = {"0", "1", "2", "3", "s", "z"}
+_BUILD_ENV_INPUTS = (
+    "RUSTFLAGS",
+    "CARGO_ENCODED_RUSTFLAGS",
+    "CARGO_BUILD_RUSTFLAGS",
+    "RUSTC",
+    "RUSTC_WRAPPER",
+    "RUSTC_WORKSPACE_WRAPPER",
+)
+_TARGET_ENV_SUFFIXES = ("LINKER", "RUSTFLAGS")
+_PROFILE_ENV_PREFIX = "CARGO_PROFILE_RELEASE_"
+_SUPPORTED_PROFILE_ENV = frozenset({"CARGO_PROFILE_RELEASE_OPT_LEVEL"})
 
 
 def run(*args: str, env: dict | None = None, cwd: Path = ROOT) -> None:
@@ -20,6 +31,26 @@ def run(*args: str, env: dict | None = None, cwd: Path = ROOT) -> None:
 
 def capture(*args: str) -> str:
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
+
+
+def _validated_environment() -> dict:
+    for key in sorted(os.environ):
+        if key.startswith(_PROFILE_ENV_PREFIX) and key not in _SUPPORTED_PROFILE_ENV:
+            raise ValueError(f"Unsupported build-affecting override: {key}")
+    return dict(os.environ)
+
+
+def _effective_overrides(platform: str) -> dict:
+    environment = _validated_environment()
+    overrides = {key: environment[key] for key in _BUILD_ENV_INPUTS if key in environment}
+    config = contracts()["native-artifacts"]
+    for target in config[platform]["targets"]:
+        prefix = f"CARGO_TARGET_{target.upper().replace('-', '_')}_"
+        for suffix in _TARGET_ENV_SUFFIXES:
+            key = prefix + suffix
+            if key in environment:
+                overrides[key] = environment[key]
+    return overrides
 
 
 def sdk() -> Path:
@@ -49,14 +80,17 @@ def identity(platform: str) -> dict:
             "tools/native-build/src/branch_native_build/config.py",
         )
     )
+    for candidate in (".cargo/config.toml", ".cargo/config"):
+        config_file = ROOT / candidate
+        if config_file.is_file():
+            files.append(config_file)
     if any(p.is_symlink() for p in files):
         raise ValueError("Native sources must not be symlinks")
     inputs = {str(p.relative_to(ROOT)): digest(p.read_bytes()) for p in sorted(set(files))}
     toolchain = {
         "rustc": capture("rustc", "-Vv"),
         "opt_level": _release_opt_level(),
-        "rustflags": os.environ.get("RUSTFLAGS", ""),
-        "encoded_rustflags": os.environ.get("CARGO_ENCODED_RUSTFLAGS", ""),
+        "overrides": _effective_overrides(platform),
     }
     if platform == "ios":
         toolchain["xcode"] = capture("xcodebuild", "-version")
@@ -149,7 +183,9 @@ def build(platform: str) -> Path:
             config = contracts()["native-artifacts"]
             target_dir = Path(os.environ.get("CARGO_TARGET_DIR", str(output() / "cargo"))).resolve()
             env = dict(
-                os.environ, CARGO_TARGET_DIR=str(target_dir), BRANCH_BUILD_ID=destination.name
+                _validated_environment(),
+                CARGO_TARGET_DIR=str(target_dir),
+                BRANCH_BUILD_ID=destination.name,
             )
             for target in config[platform]["targets"]:
                 native_env = env.copy()
