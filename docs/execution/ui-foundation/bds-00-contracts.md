@@ -1,6 +1,6 @@
 # BDS-00: Contracts and baseline
 
-Status: planned; no implementation checkpoint is complete.
+Status: implemented and locally verified; independent review pending.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-12, BUI-01, BUI-02.
 Prerequisites: None; first execution unit.
@@ -34,9 +34,9 @@ No new service contract is owned by this unit.
 
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
-| BDS-00.01 | planned | Approve public contract mapping | V0 |
-| BDS-00.02 | planned | Make inventory checks executable | V0, V1 |
-| BDS-00.03 | planned | Record actual baseline and historical context | V0, V1, V6 |
+| BDS-00.01 | complete | Approve public contract mapping | V0 |
+| BDS-00.02 | complete | Make inventory checks executable | V0, V1 |
+| BDS-00.03 | complete | Record actual baseline and historical context | V0, V1, V6 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -84,9 +84,39 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: none.
+Checkpoint evidence: complete (commits `0d06e44`, `2e1d29e`, `c0ebef4`).
 Current implementation slice: none.
-Open failures/limits: implementation not started.
+Open failures/limits: independent Codex review pending; no root gitlink update.
+
+## Checkpoint record
+
+All commands ran from the Branch project directory. `cargo extbuild run --` is the
+workstation build-output router and is not part of the repository command surface.
+
+- BDS-00.01, commit `0d06e44`: adopted the approved specification, the 92-entry
+  component inventory, the ten-entry service inventory and the fourteen checkpoint
+  plans; reconciled module ownership, exclusions and persistence in
+  `docs/architecture.md`.
+- BDS-00.02, commit `2e1d29e`: added closed schemas `contracts/schemas/ui-components.json`
+  and `contracts/schemas/platform-services.json` and the `branch-native contract-check`
+  validator. `make test-shared` is unrelated; the governing checks are
+  `branch-native contract-check` and the Python package tests.
+- BDS-00.03, commit `c0ebef4`: recorded the 2026-09-28 baseline in
+  `docs/execution/mobile-bootstrap-rcld.md` and separated historical bootstrap
+  revisions from the current checkout.
+
+Verification on 2026-09-28:
+
+| Command | Result |
+| --- | --- |
+| `make verify-rust` | exit 0; five unit tests passed, zero failed |
+| `branch-native config-check` | exit 0 |
+| `branch-native contract-check` | exit 0; `{"checkpoints":65,"components":92,"requirements":12,"services":10}` |
+| `uv run --project tools/native-build --locked --no-sync pytest tools/native-build/tests` | exit 0; 28 passed (12 inventory/contract cases) |
+| `make check-ios` / `make check-android` | exit 0 |
+
+Tooling: rustc/cargo 1.98.0, uv 0.12.19, Python 3.14.7, ruff 0.16.6, pytest 9.1.1,
+Xcode 26.6, JDK 21. No whole-checkout qualification is claimed.
 
 ## Sequence
 

@@ -1,6 +1,6 @@
 # BDS-01: Native integrity and build profiles
 
-Status: planned; no implementation checkpoint is complete.
+Status: implemented and locally verified; independent review pending.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-01, BUI-02.
 Prerequisites: [BDS-00](bds-00-contracts.md).
@@ -33,10 +33,10 @@ No new service contract is owned by this unit.
 
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
-| BDS-01.01 | planned | Control effective native configuration | V1 |
-| BDS-01.02 | planned | Close manifest integrity gap | V1 |
-| BDS-01.03 | planned | Separate native UI build profiles | V1, V2 |
-| BDS-01.04 | planned | Make environment setup reproducible | V1, V6 |
+| BDS-01.01 | complete | Control effective native configuration | V1 |
+| BDS-01.02 | complete | Close manifest integrity gap | V1 |
+| BDS-01.03 | complete | Separate native UI build profiles | V1, V2 |
+| BDS-01.04 | complete | Make environment setup reproducible | V1, V6 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -92,9 +92,47 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: none.
+Checkpoint evidence: complete (commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`).
 Current implementation slice: none.
-Open failures/limits: implementation not started.
+Open failures/limits: independent Codex review pending; hosted CI lanes not executed locally.
+
+## Checkpoint record
+
+- BDS-01.01, commit `2030bcb`: the cohort identity now normalizes
+  `CARGO_PROFILE_RELEASE_OPT_LEVEL` (unset equals `3`, unsupported values are
+  rejected) and the iOS deployment target (an equivalent form is stable, a conflict
+  is rejected), and includes release/target/SDK/deployment inputs. The identity
+  schema advanced to 2, so older cohorts are not silently reused. The regression
+  fixtures assert a changed profile changes the cohort location and equivalent
+  inputs stay stable.
+- BDS-01.02, commit `127bc05`: `native.verify` excludes only the cohort-root
+  `manifest.json`; nested files with that basename are ordinary outputs. Fixtures
+  reproduce the two native integrity defects: nested-manifest tampering/deletion and
+  an inconsistent deployment target. Missing manifests and incompatible cohort
+  schemas fail explicitly; byte-change, unexpected-file and symlink checks remain.
+- BDS-01.03, commit `6080be2`: native UI builds select the framework path and Gradle
+  task from the requested configuration (debug/release) and SDK (simulator/device).
+  `make build-release-ios`, `make build-ios-device` and `make build-release-android`
+  exist and are documented.
+- BDS-01.04, commit `7bf20fc`: `check_tools` preflights the pinned Python environment
+  and prints the setup command instead of repairing it. `make check-ios` runs the
+  documented path to completion in a prepared environment.
+
+Verification on 2026-09-28 (all exit 0), from the Branch project directory:
+
+| Command | Result |
+| --- | --- |
+| `pytest tools/native-build/tests` | 28 passed, including 5 native identity and 5 manifest integrity cases |
+| `make build-android` | Android debug app and androidTest compiled |
+| `make build-release-android` | Android release app compiled, unsigned |
+| `make build-ios` | iOS debug simulator framework and app compiled |
+| `make build-release-ios` | iOS Release simulator framework and app compiled |
+| `make build-ios-device` | iOS Release device framework and app compiled, unsigned |
+| `make check-ios` / `make check-android` | checks passed |
+
+Toolchain: rustc 1.98.0, Xcode 26.6 (17F113), iOS simulator SDK 26.5, JDK 21,
+Android SDK platform android-36, build-tools 36.0.0, NDK 29.0.14206865. `IPHONEOS`
+and release overrides were exercised through fixtures; no physical device was used.
 
 ## Sequence
 
