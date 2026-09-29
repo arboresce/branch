@@ -60,6 +60,38 @@ def sdk() -> Path:
     return Path(value).resolve()
 
 
+def _ndk_prebuilt_tag(host: str | None = None) -> str:
+    host = host or sys.platform
+    if host == "darwin":
+        return "darwin-x86_64"
+    if host.startswith("linux"):
+        return "linux-x86_64"
+    raise ValueError(f"Unsupported Android producer host platform: {host}")
+
+
+def _host_library_name(host: str | None = None) -> str:
+    host = host or sys.platform
+    if host == "darwin":
+        return "libbranch_runtime_ffi.dylib"
+    if host.startswith("linux"):
+        return "libbranch_runtime_ffi.so"
+    raise ValueError(f"Unsupported native host platform: {host}")
+
+
+def _ndk_toolchain(ndk_version: str) -> Path:
+    prebuilt = sdk() / "ndk" / ndk_version / "toolchains/llvm/prebuilt"
+    preferred = prebuilt / _ndk_prebuilt_tag()
+    if preferred.is_dir():
+        return preferred / "bin"
+    available = sorted(p.name for p in prebuilt.iterdir()) if prebuilt.is_dir() else []
+    if len(available) == 1:
+        return prebuilt / available[0] / "bin"
+    raise ValueError(
+        f"Android NDK {ndk_version} lacks a host toolchain for {_ndk_prebuilt_tag()}; "
+        f"available: {available or 'none'}"
+    )
+
+
 def identity(platform: str) -> dict:
     config = contracts()
     files = [ROOT / p for p in ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml")]
@@ -190,12 +222,7 @@ def build(platform: str) -> Path:
             for target in config[platform]["targets"]:
                 native_env = env.copy()
                 if platform == "android":
-                    ndk = (
-                        sdk()
-                        / "ndk"
-                        / config["android"]["ndk"]
-                        / "toolchains/llvm/prebuilt/darwin-x86_64/bin"
-                    )
+                    ndk = _ndk_toolchain(config["android"]["ndk"])
                     triplet = (
                         "aarch64-linux-android"
                         if target.startswith("aarch64")
@@ -227,7 +254,7 @@ def build(platform: str) -> Path:
                 "--",
                 "generate",
                 "--library",
-                str(target_dir / "release/libbranch_runtime_ffi.dylib"),
+                str(target_dir / "release" / _host_library_name()),
                 "--language",
                 "swift" if platform == "ios" else "kotlin",
                 "--out-dir",

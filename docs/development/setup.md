@@ -45,3 +45,8 @@ The default iOS app build targets the Apple Silicon simulator. Rust and shared U
 also compile device slices. Installing on physical iOS hardware requires a separate
 signing configuration; no signing team or production keys are supplied. Android
 builds include arm64-v8a and x86_64; the default emulator uses arm64-v8a.
+
+The native Android producer runs on Linux x86_64 as well as macOS. It resolves the
+NDK host tool directory and the host bindgen library suffix from explicit host
+tags and rejects unsupported host platforms with an actionable error; target ABI
+mappings and the macOS behavior are unchanged.

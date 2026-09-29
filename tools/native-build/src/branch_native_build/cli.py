@@ -3,6 +3,47 @@ import json
 
 from . import config, native
 
+_PLATFORM_ACTIONS = {
+    "build-native",
+    "check-native",
+    "lint",
+    "build",
+    "setup",
+    "test",
+    "dev",
+}
+_NO_PLATFORM_ACTIONS = {"config-write", "config-check", "contract-check", "test-shared"}
+_CONFIGURATION_ACTIONS = {"build", "test"}
+_SDK_ACTIONS = {"build", "test"}
+
+
+def resolve(
+    action: str,
+    platform: str | None,
+    configuration: str | None,
+    sdk: str | None,
+) -> tuple[str | None, str, str]:
+    if action in _NO_PLATFORM_ACTIONS:
+        if platform is not None or configuration is not None or sdk is not None:
+            raise ValueError(f"{action} does not accept a platform or build options")
+        return None, "debug", "simulator"
+    if platform is None:
+        raise ValueError(f"{action} requires an explicit platform")
+    if action not in _CONFIGURATION_ACTIONS and configuration is not None:
+        raise ValueError(f"{action} does not accept a configuration option")
+    if action not in _SDK_ACTIONS and sdk is not None:
+        raise ValueError(f"{action} does not accept an sdk option")
+    resolved_configuration = configuration or "debug"
+    resolved_sdk = sdk or "simulator"
+    if action == "test":
+        if platform == "android" and resolved_configuration != "debug":
+            raise ValueError("Android instrumentation tests support only the debug configuration")
+        if resolved_sdk != "simulator":
+            raise ValueError("Device test execution is not supported; use a simulator or emulator")
+    if action == "build" and platform == "android" and resolved_sdk != "simulator":
+        raise ValueError("Android application builds do not support the device sdk")
+    return platform, resolved_configuration, resolved_sdk
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -23,10 +64,16 @@ def main() -> None:
         ],
     )
     parser.add_argument("platform", choices=["ios", "android"], nargs="?")
-    parser.add_argument("--configuration", choices=["debug", "release"], default="debug")
-    parser.add_argument("--sdk", choices=["simulator", "device"], default="simulator")
+    parser.add_argument("--configuration", choices=["debug", "release"], default=None)
+    parser.add_argument("--sdk", choices=["simulator", "device"], default=None)
     args = parser.parse_args()
     config.local_environment()
+    try:
+        platform, configuration, sdk = resolve(
+            args.action, args.platform, args.configuration, args.sdk
+        )
+    except ValueError as error:
+        parser.error(str(error))
     if args.action.startswith("config-"):
         config.configure(args.action == "config-write")
     elif args.action == "test-shared":
@@ -37,24 +84,17 @@ def main() -> None:
         from . import inventory
 
         print(json.dumps(inventory.validate(), sort_keys=True))
+    elif args.action in {"build-native", "check-native"}:
+        print(native.build(platform) if args.action == "build-native" else native.check(platform))
     else:
-        if not args.platform:
-            parser.error("platform is required")
-        if args.action in {"build-native", "check-native"}:
-            print(
-                native.build(args.platform)
-                if args.action == "build-native"
-                else native.check(args.platform)
-            )
-        else:
-            from . import mobile
+        from . import mobile
 
-            if args.action == "build":
-                mobile.build(args.platform, args.configuration, args.sdk)
-            elif args.action == "test":
-                mobile.test(args.platform, args.configuration)
-            else:
-                getattr(mobile, args.action)(args.platform)
+        if args.action == "build":
+            mobile.build(platform, configuration, sdk)
+        elif args.action == "test":
+            mobile.test(platform, configuration)
+        else:
+            getattr(mobile, args.action)(platform)
 
 
 if __name__ == "__main__":

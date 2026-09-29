@@ -26,6 +26,9 @@ containing this Makefile.
 
 Setup may install missing Android packages through sdkmanager; accept its license
 prompts as the developer. Build/check never rewrite contracts or dependency locks.
+Checks first verify the Python tool lockfile and selected environment
+(`uv lock --check`, `uv sync --check`) plus exact direct-dependency versions and
+Ruff availability; they report the setup command instead of repairing.
 `check-native-android` and `check-native-ios` are internal Bash dispatcher entries
 used by build integration, not extra Make targets. The internal `branch-native lint`
 action runs pinned Gradle ktlint checks for handwritten Kotlin and build scripts;

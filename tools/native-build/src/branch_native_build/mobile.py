@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -16,10 +17,22 @@ def environment(platform: str, build_native: bool = True) -> dict:
         os.environ, BRANCH_ROOT=str(ROOT), BRANCH_BUILD_DIR=str(output()), BRANCH_NATIVE=str(path)
     )
     if not env.get("JAVA_HOME"):
+        if sys.platform != "darwin":
+            raise ValueError("Set JAVA_HOME to a JDK 21 installation")
         env["JAVA_HOME"] = native.capture("/usr/libexec/java_home", "-v", "21")
     if platform == "android":
         env["ANDROID_HOME"] = str(native.sdk())
     return env
+
+
+def cmdline_tool(name: str) -> str:
+    root = native.sdk() / "cmdline-tools"
+    candidates = sorted(
+        entry / "bin" / name for entry in root.glob("*") if (entry / "bin" / name).is_file()
+    )
+    if not candidates:
+        raise ValueError(f"Android command-line tool not found: {name}; install cmdline-tools")
+    return str(candidates[-1])
 
 
 def gradle(env: dict, *tasks: str) -> None:
@@ -205,7 +218,7 @@ def android_device():
         emulator = native.sdk() / "emulator/emulator"
         avds = subprocess.check_output([str(emulator), "-list-avds"], text=True).splitlines()
         if spec["android_avd"] not in avds:
-            manager = native.sdk() / "cmdline-tools/19.0/bin/avdmanager"
+            manager = cmdline_tool("avdmanager")
             subprocess.run(
                 [
                     str(manager),
@@ -285,6 +298,8 @@ def android_device():
 
 
 def test(platform: str, configuration: str = "debug") -> None:
+    if platform == "android" and configuration != "debug":
+        raise ValueError("Android instrumentation tests support only the debug configuration")
     env = build(platform, configuration)
     if platform == "ios":
         with ios_device() as udid:
@@ -338,9 +353,9 @@ def setup(platform: str) -> None:
     native.run("rustup", "target", "add", *contracts()["native-artifacts"][platform]["targets"])
     if platform == "android":
         spec = contracts()["native-artifacts"]["android"]
-        manager = native.sdk() / "cmdline-tools/19.0/bin/sdkmanager"
+        manager = cmdline_tool("sdkmanager")
         native.run(
-            str(manager),
+            manager,
             f"--sdk_root={native.sdk()}",
             "platform-tools",
             f"platforms;android-{spec['compile_sdk']}",
