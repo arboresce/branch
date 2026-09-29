@@ -8,8 +8,6 @@ from branch_native_build import mobile
 
 
 class FakeEmulatorProcess:
-    """Minimal Popen stand-in with scripted wait outcomes."""
-
     def __init__(self, wait_outcomes: list):
         self.wait_outcomes = list(wait_outcomes)
         self.waits = 0

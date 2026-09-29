@@ -457,7 +457,6 @@ def android_device():
 
 
 def _bound_shutdown_request(serial: str) -> None:
-    """Ask ADB to shut down the owned emulator within a bounded request."""
     try:
         subprocess.run(
             [str(native.sdk() / "platform-tools/adb"), "-s", serial, "emu", "kill"],
@@ -477,7 +476,6 @@ def _stop_owned_emulator(
     terminate_wait: float = 10,
     kill_wait: float = 10,
 ) -> None:
-    """Bound graceful, terminate and kill/reap waits for one owned process."""
     _bound_shutdown_request(serial)
     try:
         process.wait(timeout=grace)
@@ -498,7 +496,6 @@ def _stop_owned_emulator(
 
 
 def _release_owned_emulator(process: subprocess.Popen, serial: str) -> None:
-    """Report cleanup failure separately when a primary failure is in flight."""
     pending = sys.exc_info()[0] is not None
     try:
         _stop_owned_emulator(process, serial)
