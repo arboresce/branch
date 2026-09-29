@@ -1,10 +1,10 @@
 # BDS-01: Native integrity and build profiles
 
-Status: correction required after independent review, 2026-09-29.
+Status: correction complete, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-01, BUI-02.
 Prerequisites: [BDS-00](bds-00-contracts.md).
-Next action: after the BDS-00 correction, complete the reopened checkpoints under the review amendment below.
+Next action: await Codex gate arbi-6v62.19 acceptance before BDS-02-dependent downstream work.
 
 ## Scope
 
@@ -34,10 +34,10 @@ No new service contract is owned by this unit.
 
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
-| BDS-01.01 | planned | Complete effective native configuration policy | V1 |
+| BDS-01.01 | complete | Complete effective native configuration policy | V1 |
 | BDS-01.02 | complete | Close manifest integrity gap | V1 |
-| BDS-01.03 | planned | Correct explicit build/test profile routing | V1, V2 |
-| BDS-01.04 | planned | Verify locked environment freshness | V1, V6 |
+| BDS-01.03 | complete | Correct explicit build/test profile routing | V1, V2 |
+| BDS-01.04 | complete | Verify locked environment freshness | V1, V6 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -93,9 +93,9 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; only BDS-01.02 remains accepted as complete.
+Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; BDS-01.02 retained complete; BDS-01.01 corrected at `beefd3d`, BDS-01.03 at `eaf92a5`, BDS-01.04 at `7d3ca29` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: F01, F08 and F09 below; hosted CI remains unexecuted.
+Open failures/limits: F01/F08/F09 corrected; stable Backdrop pins are documented in BDS-02. Linux x86_64 producer execution is not run on this macOS host; command-construction/import tests plus the macOS host build cover the producer. Hosted CI remains unexecuted. Independent Codex acceptance remains open at arbi-6v62.19.
 
 ## Review amendment (2026-09-29)
 
@@ -166,6 +166,37 @@ Verification on 2026-09-28 (all exit 0), from the Branch project directory:
 Toolchain: rustc 1.98.0, Xcode 26.6 (17F113), iOS simulator SDK 26.5, JDK 21,
 Android SDK platform android-36, build-tools 36.0.0, NDK 29.0.14206865. `IPHONEOS`
 and release overrides were exercised through fixtures; no physical device was used.
+
+### Corrective checkpoint record (2026-09-29)
+
+BDS-01.01, commit `beefd3d`: cohort identity now records a bounded effective-input
+set (compiler, wrapper, flag and per-target linker variables plus an existing
+`.cargo/config.toml`). `CARGO_PROFILE_RELEASE_OPT_LEVEL` stays the only supported
+release-profile override; other `CARGO_PROFILE_RELEASE_*` overrides are rejected
+before cache lookup. Output/cache paths (`CARGO_TARGET_DIR`, `BRANCH_BUILD_DIR`,
+`BRANCH_NATIVE`) are not semantic inputs. Identity and subprocess execution share
+the validated policy.
+
+BDS-01.03, commit `eaf92a5`: action-aware CLI routing rejects unsupported options
+and non-debug Android test requests before building; the native Android producer
+resolves the NDK host toolchain tag and host bindgen library suffix explicitly and
+rejects unsupported hosts. BDS-01.04, commit `7d3ca29`: checks verify lock freshness
+and exact direct-dependency versions (including Ruff) without repair.
+
+Verification on 2026-09-29 (Branch project directory, all exit 0):
+
+| Command | Result |
+| --- | --- |
+| `pytest tools/native-build/tests` | 78 passed (identity, routing, environment cases) |
+| `make verify-rust` | five Rust unit tests passed |
+| `make build-android`, `make build-release-android` | compiled; Android native cohort verified |
+| `make build-ios`, `make build-release-ios`, `make build-ios-device` | compiled |
+| `make check-android`, `make check-ios` | ktlint, Android Lint, swift-format and Python checks passed |
+| `branch-native env-check` | Python tool environment synchronized with the lockfile |
+
+`make check-tools` now performs `uv lock --check`, `uv sync --check` and the exact
+version preflight. The Linux producer path is covered by `test_routing` host-tag
+cases and the macOS host build; it is not executed on Linux in this batch.
 
 ## Sequence
 

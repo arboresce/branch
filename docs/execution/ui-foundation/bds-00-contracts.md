@@ -1,10 +1,10 @@
 # BDS-00: Contracts and baseline
 
-Status: correction required after independent review, 2026-09-29.
+Status: correction complete, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-12, BUI-01, BUI-02.
 Prerequisites: None; first execution unit.
-Next action: correct BDS-00.02 under the review amendment below; retain the accepted mapping and historical baseline.
+Next action: await Codex gate arbi-6v62.19 acceptance, then proceed only after the private asset gate.
 
 ## Scope
 
@@ -37,7 +37,7 @@ No new service contract is owned by this unit.
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
 | BDS-00.01 | complete | Approve public contract mapping | V0 |
-| BDS-00.02 | planned | Correct inventory authority validation | V0, V1 |
+| BDS-00.02 | complete | Correct inventory authority validation | V0, V1 |
 | BDS-00.03 | complete | Record actual baseline and historical context | V0, V1, V6 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
@@ -86,9 +86,9 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: submitted commits `0d06e44`, `2e1d29e`, `c0ebef4`; BDS-00.02 is reopened.
+Checkpoint evidence: submitted commits `0d06e44`, `2e1d29e`, `c0ebef4`; BDS-00.02 corrected at `78bdb0c` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: F07 below; corrected implementation requires independent acceptance.
+Open failures/limits: F07 corrected; F08/F09 are owned by BDS-01. Independent Codex acceptance remains open at arbi-6v62.19.
 
 ## Review amendment (2026-09-29)
 
@@ -108,6 +108,26 @@ is implemented merely because the inventory passes.
 
 The mapping and historical baseline are retained. This correction changes the
 validator, not the approved component inventory or downstream scope.
+
+### Corrective checkpoint record (2026-09-29)
+
+BDS-00.02, commit `78bdb0c`: `inventory._known` no longer treats every identifier
+mention as a definition. The validator resolves the ordered checkpoint table rows
+and matching `### BDS-xx.yy` sections (scope and definition-of-green required),
+plus `## BUI-nn` requirement sections; it rejects orphan prose mentions, duplicate
+table or section definitions, table/section disagreement and broken repository-local
+authority links. The valid 92-component/ten-service/65-checkpoint/12-requirement
+mapping is unchanged.
+
+Verification (Branch project directory, all exit 0):
+
+| Command | Result |
+| --- | --- |
+| `pytest tools/native-build/tests` | 78 passed; five added inventory rejection/count cases |
+| `branch-native contract-check` | `{"checkpoints":65,"components":92,"requirements":12,"services":10}` |
+| `ruff check` / `ruff format --check tools/native-build` | clean |
+
+No component behavior is claimed implemented because the inventory passes.
 
 ## Checkpoint record
 

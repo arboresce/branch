@@ -32,6 +32,14 @@ def save(root, name, data):
     (root / "contracts" / f"{name}.json").write_text(json.dumps(data))
 
 
+def checkpoint_row(root, identifier):
+    plan = root / "docs/execution/ui-foundation/bds-00-contracts.md"
+    for line in plan.read_text().splitlines():
+        if line.startswith(f"| {identifier} "):
+            return plan, line + "\n"
+    raise AssertionError(f"Missing checkpoint row: {identifier}")
+
+
 def test_valid_inventory_passes(tmp_path):
     summary = inventory.validate(fixture(tmp_path))
     assert summary == {"components": 92, "services": 10, "checkpoints": 65, "requirements": 12}
@@ -106,8 +114,7 @@ def test_orphan_mention_is_not_a_checkpoint_definition(tmp_path):
 
 def test_duplicate_checkpoint_definition_fails(tmp_path):
     root = fixture(tmp_path)
-    plan = root / "docs/execution/ui-foundation/bds-00-contracts.md"
-    row = "| BDS-00.02 | planned | Correct inventory authority validation | V0, V1 |\n"
+    plan, row = checkpoint_row(root, "BDS-00.02")
     plan.write_text(plan.read_text().replace(row, row + row))
     with pytest.raises(ValueError, match="Duplicate checkpoint definition"):
         inventory.validate(root)
@@ -115,8 +122,7 @@ def test_duplicate_checkpoint_definition_fails(tmp_path):
 
 def test_checkpoint_table_row_without_section_fails(tmp_path):
     root = fixture(tmp_path)
-    plan = root / "docs/execution/ui-foundation/bds-00-contracts.md"
-    row = "| BDS-00.02 | planned | Correct inventory authority validation | V0, V1 |\n"
+    plan, row = checkpoint_row(root, "BDS-00.02")
     plan.write_text(
         plan.read_text().replace(row, row + "| BDS-00.09 | planned | Orphan row | V0 |\n")
     )
@@ -126,8 +132,7 @@ def test_checkpoint_table_row_without_section_fails(tmp_path):
 
 def test_checkpoint_section_without_table_row_fails(tmp_path):
     root = fixture(tmp_path)
-    plan = root / "docs/execution/ui-foundation/bds-00-contracts.md"
-    row = "| BDS-00.02 | planned | Correct inventory authority validation | V0, V1 |\n"
+    plan, row = checkpoint_row(root, "BDS-00.02")
     plan.write_text(plan.read_text().replace(row, ""))
     with pytest.raises(ValueError, match="lacks a matching table row"):
         inventory.validate(root)

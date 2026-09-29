@@ -1,10 +1,10 @@
 # BDS-02: Reactive shared hosts and verification harness
 
-Status: correction required after independent review, 2026-09-29.
+Status: correction complete, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-02, BUI-03, BUI-10, BUI-11.
 Prerequisites: [BDS-01](bds-01-native-build.md).
-Next action: after corrected BDS-00/01 gates, complete BDS-02.02 through BDS-02.05 under the review amendment below, then stop for independent acceptance before BDS-03.
+Next action: await Codex gate arbi-6v62.19 acceptance; then BDS-03 and the private asset gate.
 
 ## Scope
 
@@ -50,10 +50,10 @@ No new service contract is owned by this unit.
 | Slice | State | Outcome | Verification |
 | --- | --- | --- | --- |
 | BDS-02.01 | complete | Introduce compiling module boundaries | V0, V2 |
-| BDS-02.02 | planned | Correct reactive lifecycle and in-flight races | V2, V3 |
-| BDS-02.03 | planned | Launch the independent deterministic catalog | V2, V3 |
-| BDS-02.04 | planned | Run the required dependency prototypes | V2, V3 |
-| BDS-02.05 | planned | Complete shared runners and viable CI bootstrap | V0, V2, V3 |
+| BDS-02.02 | complete | Correct reactive lifecycle and in-flight races | V2, V3 |
+| BDS-02.03 | complete | Launch the independent deterministic catalog | V2, V3 |
+| BDS-02.04 | complete | Run the required dependency prototypes | V2, V3 |
+| BDS-02.05 | complete | Complete shared runners and viable CI bootstrap | V0, V2, V3 |
 
 Each row is a bounded rolling slice, not a requirement to combine unrelated
 component implementations into one commit. Split a row into reviewed sub-checkpoints
@@ -117,9 +117,9 @@ after its required checks and authorized checkpoint exist; record actual revisio
 in the next ledger update. No commit/push/publication is authorized by a status.
 Never mark a device-only result passed from a simulator run.
 
-Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.02 through BDS-02.05 are reopened.
+Checkpoint evidence: submitted commits `4b375b9`, `8cdf503`, `2220f66`, `cbd964e`, `1366b41`, `8eb825f`; BDS-02.01 retained complete; BDS-02.02 corrected at `e5857b5`, BDS-02.03 at `bbb403c`, BDS-02.04 at `46c8ff4` + `f04fccc`, BDS-02.05 at `9379894` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: F02 through F06 below; hosted CI runners remain unexecuted.
+Open failures/limits: F02-F06 corrected locally. Stable Backdrop 2.0.0/2.0.1 require `compileSdk 37`; the compatible pin is `2.0.0-alpha03` (see decision below). Hosted CI is defined and structurally validated but NOT_RUN. No hosted or physical-device execution occurred. Independent Codex acceptance remains open at arbi-6v62.19.
 
 ## Review amendment (2026-09-29)
 
@@ -245,6 +245,63 @@ build renders the shared loading string and the UI test passes.
 
 Hosted CI: `.github/workflows/branch-checks.yml` was added and inspected but not
 executed on a hosted runner; only the local commands were executed.
+
+### Corrective checkpoint record (2026-09-29)
+
+BDS-02.02, commit `e5857b5`: `RuntimeController` now has terminal disposal, a
+generation-owned active flag, a serialized native-call mutex, retry-to-loading,
+and scope ownership that cancels only a controller-owned scope. Both hosts and the
+catalog release controller work explicitly. Five new controlled in-flight common
+tests plus Swift cancel/disposal tests cover the reopened F02 races.
+
+BDS-02.03, commit `bbb403c`: independent Android (`:catalog:android`) and iOS
+(`app/catalog/ios`) development hosts with application identity
+`ai.arboresce.branch.catalog` render `CatalogRoot` and fixed fixtures; a
+catalog-only iOS bridge (`:catalog:xc-framework`) exports the controller. Production
+dependency graphs and artifacts exclude catalog code (verified against the debug APK
+and Release app bundle). `make build-catalog-*`, `dev-catalog-*` and `test-catalog-*`
+are documented.
+
+BDS-02.04, commits `46c8ff4` and `f04fccc`: pinned probes and evidence:
+
+| Dependency | Pin | Evidence |
+| --- | --- | --- |
+| Navigation 3 | `org.jetbrains.androidx.navigation3:navigation3-ui:1.1.1` | Two-entry transition asserted on Android instrumentation and iOS UI tests; `NavBackStack`/`NavKey` polymorphic round-trip in `CatalogProbesTest` on both iOS simulator and Android host |
+| Backdrop | `io.github.kyant0:backdrop:2.0.0-alpha03` | Library-neutral internal glass adapter with opaque fallback; catalog renders the surface on both hosts; fallback selection unit-tested |
+| Coil 3 | `io.coil-kt.coil3:coil-compose:3.5.0` | Deterministic PNG success and missing-model error asserted on both hosts |
+
+Backdrop compatibility decision: `2.0.0-rc01`, `2.0.0` and `2.0.1` declare
+`minCompileSdk=37` in their AAR metadata and are incompatible with the contract's
+`compileSdk 36`; `2.0.0-alpha03` declares `minCompileSdk=36` (Compose 1.10.1,
+Kotlin 2.3.10) and compiles. This is a bounded incompatibility report, not a
+toolchain change; raising `compileSdk` to 37 remains a Codex decision.
+
+BDS-02.05, commit `9379894`: `:shared:app` and `:catalog` enable the Android host
+test runner (`testAndroidHostTest`) alongside the iOS simulator runner; `test_shared`
+clears stale results and fails when a declared common-test module records zero
+executed tests. Compose resource copies derive from the selected Xcode product and
+are bounded to `compose-resources/composeResources` with a missing-source rejection
+in both the Swift build script and the Python preflight. The Linux/macOS CI workflow
+is restructured with explicit JDK/SDK/Xcode/uv setup; hosted execution remains NOT_RUN.
+
+Verification on 2026-09-29 (Branch project directory, all exit 0 unless noted):
+
+| Command | Result |
+| --- | --- |
+| `make test-shared` | Android host 22 and iOS simulator 22 executed tests, zero failures (forced execution after clearing stale results) |
+| `make test-ios` | 5 XCTest cases + 1 UI test passed |
+| `make test-android` | 3 instrumentation tests passed on the API 36 arm64 emulator |
+| `make test-catalog-ios` | 1 unit + 3 UI tests passed (navigation transition, image success/error) |
+| `make test-catalog-android` | 3 instrumentation tests passed |
+| `make check-android` / `make check-ios` | ktlint, Android Lint, swift-format and Python checks passed |
+| `make build-release-ios` / `make build-ios-device` | Debug/Release simulator and unsigned device bundles contain the shared resources |
+
+Catalog launch evidence: `ai.arboresce.branch.catalog` launched on the iOS simulator
+(PID observed) and the API 36 emulator (PID observed) with paired screenshots; the
+production APK and Release `Branch.app` contain no catalog entries.
+
+Hosted CI is structurally validated by `tools/native-build/tests/test_ci_workflow.py`;
+no hosted runner was executed and no external runs were created.
 
 ## Sequence
 
