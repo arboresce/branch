@@ -1,10 +1,10 @@
 # BDS-01: Native integrity and build profiles
 
-Status: second-review correction complete, independent acceptance pending, 2026-09-29.
+Status: BDS-01.01 third-review correction committed, independent acceptance pending, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-01, BUI-02.
 Prerequisites: [BDS-00](bds-00-contracts.md).
-Next action: await independent acceptance; retain the accepted routing and environment checks.
+Next action: await independent acceptance at the acceptance gate; retain the other native checkpoints.
 
 ## Scope
 
@@ -95,7 +95,37 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `2030bcb`, `127bc05`, `6080be2`, `7bf20fc`; BDS-01.02 retained complete; BDS-01.01 corrected at `beefd3d`, BDS-01.03 at `eaf92a5`, BDS-01.04 at `7d3ca29` on 2026-09-29.
 Current implementation slice: none.
-Open failures/limits: F08/F09 accepted; R2-01 corrected in the second-review batch. Linux producer execution and hosted CI remain NOT_RUN; host-tag tests are not Linux execution evidence.
+Open failures/limits: R3-01 corrected pending independent acceptance. F08/F09 and NDK host matching are retained. Linux producer execution and hosted CI remain NOT_RUN; host-tag tests are not Linux execution evidence.
+
+## Third-review amendment (2026-09-29)
+
+R3-01 / BDS-01.01: independent probes at `1f79aef` show that replacing bytes of
+the selected compiler at the same path preserves identity; host-target linker and
+development-profile overrides also pass unchanged. Cargo `[env]` values are copied
+verbatim into the identity which becomes the manifest. A synthetic marker proved
+that exposure without reading or disclosing any real credential.
+
+Implement the bounded default-toolchain policy now adopted in
+[native artifacts](../../spec/native-artifacts.md). Reject custom compiler/wrapper
+selectors and caller/config target linkers instead of implementing arbitrary-tool
+support. Reject all unapproved profile overrides, including host bindgen's dev
+profile, and nonempty Cargo `[env]`; report categories/keys without values. Account
+for host-target flags as well as mobile targets, and retain only explicitly
+supported semantic configuration. Keep output/cache-only settings nonsemantic.
+Use the same resolved policy for cache lookup and each actual host/target build
+and bindgen command; preserve output routing and canonical NDK linkers.
+
+Add regressions that fail the reviewed producer: selected compiler/wrapper inputs
+are rejected before cache lookup even if a matching cohort exists; native host
+linker/dev profile overrides fail; a synthetic `[env]` value never appears in an
+identity, manifest or diagnostic; retained flags affect the appropriate host and
+target execution; output-only changes remain stable. Intercept actual subprocess
+arguments/environment, not just helper return dictionaries. Run native unit checks
+and real default producer/consumer checks on both local platforms. Preserve the
+accepted NDK host mismatch, manifest, routing and environment-readiness behavior.
+
+The earlier execution records below are historical submissions, not acceptance
+of R3-01. No new checkpoint identifiers or toolchain upgrades are required.
 
 ## Second-review amendment (2026-09-29)
 
@@ -247,6 +277,36 @@ Verification (Branch project directory, `cargo extbuild run --` router, exit 0):
 Cohort locations change because the identity now includes the Cargo configuration
 and producer linkers; existing cohorts are not silently reused. No Linux producer
 execution is claimed.
+
+### Third corrective checkpoint record (2026-09-29)
+
+BDS-01.01 now enforces the bounded default-producer policy in
+[native artifacts](../../spec/native-artifacts.md). Explicit `RUSTC`,
+`RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER` and the Cargo aliases are rejected
+before cache lookup; caller/config target linkers are rejected; any
+`CARGO_PROFILE_*` override except the supported release optimization is rejected;
+Cargo `[env]` and nonempty `[profile]`/`[target.linker]` configuration are
+rejected without echoing values. Retained `RUSTFLAGS`, encoded/build rustflags
+and per-target rustflags (including the native host) are recorded; output-only
+`build.target-dir` is normalized out. Identity and the actual host/target build
+and bindgen subprocesses share one `_build_environment` policy, and the canonical
+Android NDK linkers remain in that policy. One host-tooling exception,
+`CARGO_PROFILE_DEV_DEBUG`, is treated as non-semantic debug output because the
+external build router sets it for every routed command; no other dev setting is
+accepted. This bounded exception is returned to review rather than echoing any
+value.
+
+Verification (Branch project directory, `cargo extbuild run --` router):
+
+| Command | Result |
+| --- | --- |
+| `pytest tools/native-build/tests` | 128 passed, including a subprocess spy that inspects the actual host/target/bindgen environment |
+| `ruff check` / `ruff format --check tools/native-build` | clean |
+| `make build-android` | compiled; default Android producer ran and wrote a fresh cohort |
+| `make build-ios` | compiled; default iOS producer ran with Xcode 26.6 / simulator SDK 26.5 |
+
+Limits: Linux producer execution, API 28 device execution and hosted CI remain
+NOT_RUN. No toolchain upgrade or library change is made.
 
 ## Sequence
 

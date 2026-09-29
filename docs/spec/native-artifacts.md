@@ -21,12 +21,17 @@ verification. Existing mismatched cohorts are never silently repaired.
 Cohort identity describes the effective build. `CARGO_PROFILE_RELEASE_OPT_LEVEL` is
 the one supported release-profile override; unset normalizes to `3`, the supported
 values are `0`, `1`, `2`, `3`, `s` and `z`, and other values are rejected.
-Any other `CARGO_PROFILE_RELEASE_*` override (`LTO`, `DEBUG`, `PANIC`
-and similar) is rejected before cache lookup rather than leaking into the producer.
-Recorded semantic inputs include compiler and wrapper selection (`RUSTC`,
-`RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`), flag variables (`RUSTFLAGS`,
-`CARGO_ENCODED_RUSTFLAGS`, `CARGO_BUILD_RUSTFLAGS`), per-target linker and rustflag
-overrides and an existing `.cargo/config.toml`. Output and cache locations such as
+Any other `CARGO_PROFILE_*` override, including the development profile used by
+host bindgen, is rejected before cache lookup rather than leaking into the producer.
+The supported producer uses the pinned default Rust toolchain and platform-selected
+linkers. Explicit `RUSTC`, `RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`, their Cargo
+aliases and caller/configuration-selected target linkers are unsupported and must
+be rejected before cache lookup. This bounded policy supersedes the earlier
+proposal to support arbitrary compiler/wrapper selectors by recording their paths.
+Recorded semantic inputs include the actual default compiler identity and supported
+flag variables (`RUSTFLAGS`, `CARGO_ENCODED_RUSTFLAGS`, `CARGO_BUILD_RUSTFLAGS`).
+Any retained per-target rustflags include the native host as well as all produced
+targets; unsupported target settings fail explicitly. Output and cache locations such as
 `CARGO_TARGET_DIR`, `BRANCH_BUILD_DIR` and `BRANCH_NATIVE` are explicitly not
 semantic inputs. Identity and subprocess execution share the same validated policy;
 the whole host environment is never hashed and credentials are never printed.
@@ -34,14 +39,20 @@ the whole host environment is never hashed and credentials are never printed.
 The supported-input list is closed for code-generation semantics, not merely a
 list of values to hash while inheriting all others. Compiler/default-target aliases
 including `CARGO_BUILD_RUSTC` and `CARGO_BUILD_TARGET`, and unmodeled incremental,
-profile or host-target overrides must fail before cache lookup. A supported wrapper
-or compiler selection must identify the actual executable/toolchain, not only its
-path string. Applicable repository, ancestor and selected Cargo-home configuration
+profile or host-target overrides must fail before cache lookup. Compiler identity
+must describe the executable/toolchain actually invoked. Applicable repository,
+ancestor and selected Cargo-home configuration
 must be evaluated for build-affecting settings and normalized or rejected by the
 same resolver. Do not copy those files or hash credential/registry configuration.
 Output/cache routing remains nonsemantic. Producer-selected linker settings must
 be the settings represented by identity. The host bindgen build follows this same
 policy, and unsupported NDK host architectures/prebuilt directories fail explicitly.
+Nonempty Cargo `[env]` tables and configuration profile overrides are unsupported:
+reject them before identity serialization or execution. Diagnostics name the key
+or category without echoing values. Never persist Cargo `[env]` values or credentials
+in cohort manifests. Normalize output/cache-only Cargo settings out of semantic
+identity. Regression tests must observe both identity decisions and the actual
+environment/arguments passed to host and target build/bindgen subprocesses.
 
 Gradle versions live in app/gradle/libs.versions.toml and the wrapper properties. Resolution
 locks and verification-metadata.xml are committed. contracts/native-settings.properties

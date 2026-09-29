@@ -1,5 +1,6 @@
 import json
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -10,6 +11,8 @@ _BUILD_ENV = (
     "CARGO_PROFILE_RELEASE_LTO",
     "CARGO_PROFILE_RELEASE_DEBUG",
     "CARGO_PROFILE_RELEASE_PANIC",
+    "CARGO_PROFILE_DEV_OPT_LEVEL",
+    "CARGO_PROFILE_DEV_DEBUG",
     "CARGO_BUILD_RUSTC",
     "CARGO_BUILD_RUSTC_WRAPPER",
     "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER",
@@ -22,6 +25,10 @@ _BUILD_ENV = (
     "RUSTC",
     "RUSTC_WRAPPER",
     "RUSTC_WORKSPACE_WRAPPER",
+    "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER",
+    "CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS",
+    "CARGO_TARGET_AARCH64_APPLE_IOS_LINKER",
+    "CARGO_TARGET_AARCH64_APPLE_IOS_RUSTFLAGS",
 )
 
 
@@ -102,44 +109,28 @@ def test_invalid_deployment_target_rejected(tmp_path, monkeypatch):
         "CARGO_PROFILE_RELEASE_LTO",
         "CARGO_PROFILE_RELEASE_DEBUG",
         "CARGO_PROFILE_RELEASE_PANIC",
+        "CARGO_PROFILE_DEV_OPT_LEVEL",
     ],
 )
-def test_unsupported_release_profile_overrides_rejected(tmp_path, monkeypatch, name):
+def test_unsupported_profile_overrides_rejected(tmp_path, monkeypatch, name):
     identity = prepare(tmp_path, monkeypatch)
     monkeypatch.setenv(name, "true")
     with pytest.raises(ValueError, match="Unsupported build-affecting override"):
         identity("ios")
 
 
-def test_recorded_compiler_and_wrapper_inputs_change_identity(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "name",
+    [
+        "RUSTC",
+        "RUSTC_WRAPPER",
+        "RUSTC_WORKSPACE_WRAPPER",
+    ],
+)
+def test_custom_compiler_and_wrapper_selectors_are_rejected(tmp_path, monkeypatch, name):
     identity = prepare(tmp_path, monkeypatch)
-    baseline = identity("ios")
-    assert "RUSTC_WRAPPER" not in baseline["toolchain"]["overrides"]
-    wrapper = tmp_path / "fake-wrapper"
-    wrapper.write_text("#!/bin/sh\nexit 0\n")
-    wrapper.chmod(0o755)
-    monkeypatch.setenv("RUSTC_WRAPPER", str(wrapper))
-    changed = identity("ios")
-    assert changed["toolchain"]["overrides"]["RUSTC_WRAPPER"] == str(wrapper.resolve())
-    assert native.location("ios", changed) != native.location("ios", baseline)
-
-
-def test_compiler_selection_resolves_the_real_executable(tmp_path, monkeypatch):
-    identity = prepare(tmp_path, monkeypatch)
-    real = tmp_path / "rustc-real"
-    real.write_text("#!/bin/sh\nexit 0\n")
-    real.chmod(0o755)
-    link = tmp_path / "rustc-link"
-    link.symlink_to(real)
-    monkeypatch.setenv("RUSTC", str(link))
-    changed = identity("ios")
-    assert changed["toolchain"]["overrides"]["RUSTC"] == str(real.resolve())
-
-
-def test_unresolved_tool_selection_is_rejected(tmp_path, monkeypatch):
-    identity = prepare(tmp_path, monkeypatch)
-    monkeypatch.setenv("RUSTC_WRAPPER", "definitely-not-an-installed-tool")
-    with pytest.raises(ValueError, match="Unresolved build tool RUSTC_WRAPPER"):
+    monkeypatch.setenv(name, "/bin/true")
+    with pytest.raises(ValueError, match="Unsupported build-affecting override"):
         identity("ios")
 
 
@@ -160,6 +151,51 @@ def test_unsupported_cargo_aliases_are_rejected(tmp_path, monkeypatch, name):
         identity("ios")
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER",
+        "CARGO_TARGET_AARCH64_APPLE_IOS_LINKER",
+    ],
+)
+def test_caller_target_linkers_are_rejected(tmp_path, monkeypatch, name):
+    identity = prepare(tmp_path, monkeypatch)
+    monkeypatch.setenv(name, "/tmp/linker")
+    with pytest.raises(ValueError, match="Unsupported build-affecting override"):
+        identity("ios")
+
+
+def test_host_tooling_dev_debug_is_nonsemantic(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    baseline = identity("ios")
+    monkeypatch.setenv("CARGO_PROFILE_DEV_DEBUG", "line-tables-only")
+    assert identity("ios") == baseline
+
+
+def test_retained_host_and_target_rustflags_change_identity(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    baseline = identity("ios")
+    monkeypatch.setenv("RUSTFLAGS", "-Copt-level=1")
+    monkeypatch.setenv("CARGO_TARGET_AARCH64_APPLE_IOS_RUSTFLAGS", "-Cdebug-assertions=on")
+    changed = identity("ios")
+    overrides = changed["toolchain"]["overrides"]
+    assert overrides["RUSTFLAGS"] == "-Copt-level=1"
+    assert overrides["CARGO_TARGET_AARCH64_APPLE_IOS_RUSTFLAGS"] == "-Cdebug-assertions=on"
+    assert native.location("ios", changed) != native.location("ios", baseline)
+
+
+def test_host_target_rustflags_change_identity(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    baseline = identity("ios")
+    monkeypatch.setenv("CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS", "-Copt-level=2")
+    changed = identity("ios")
+    assert (
+        changed["toolchain"]["overrides"]["CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS"]
+        == "-Copt-level=2"
+    )
+    assert native.location("ios", changed) != native.location("ios", baseline)
+
+
 def test_cargo_home_semantic_config_changes_identity(tmp_path, monkeypatch):
     identity = prepare(tmp_path, monkeypatch)
     baseline = identity("ios")
@@ -177,13 +213,17 @@ def test_ancestor_semantic_config_changes_identity(tmp_path, monkeypatch):
     base = tmp_path / "level"
     base.mkdir()
     (base / ".cargo").mkdir()
-    (base / ".cargo/config.toml").write_text('[target.aarch64-apple-ios]\nlinker = "ancestor"\n')
+    (base / ".cargo/config.toml").write_text(
+        '[target.aarch64-apple-ios]\nrustflags = ["-Copt-level=1"]\n'
+    )
     identity = prepare(tmp_path, monkeypatch, root=base / "repo")
     baseline = identity("ios")
     assert baseline["toolchain"]["cargo_config"]["ancestor/1"]["target"] == {
-        "aarch64-apple-ios": {"linker": "ancestor"}
+        "aarch64-apple-ios": {"rustflags": ["-Copt-level=1"]}
     }
-    (base / ".cargo/config.toml").write_text('[target.aarch64-apple-ios]\nlinker = "changed"\n')
+    (base / ".cargo/config.toml").write_text(
+        '[target.aarch64-apple-ios]\nrustflags = ["-Copt-level=2"]\n'
+    )
     assert native.location("ios", identity("ios")) != native.location("ios", baseline)
 
 
@@ -195,6 +235,39 @@ def test_unsupported_cargo_config_is_rejected(tmp_path, monkeypatch):
     identity = prepare(tmp_path, monkeypatch, root=base / "repo")
     with pytest.raises(ValueError, match="Unsupported Cargo configuration build.target"):
         identity("ios")
+
+
+def test_cargo_config_profile_is_rejected(tmp_path, monkeypatch):
+    home = tmp_path / "cargo-home"
+    (home / ".cargo").mkdir(parents=True)
+    (home / ".cargo/config.toml").write_text("[profile.dev]\nopt-level = 1\n")
+    identity = prepare(tmp_path, monkeypatch)
+    monkeypatch.setenv("CARGO_HOME", str(home / ".cargo"))
+    with pytest.raises(ValueError, match="Unsupported Cargo configuration profile"):
+        identity("ios")
+
+
+def test_cargo_config_target_linker_is_rejected(tmp_path, monkeypatch):
+    home = tmp_path / "cargo-home"
+    (home / ".cargo").mkdir(parents=True)
+    (home / ".cargo/config.toml").write_text('[target.aarch64-apple-ios]\nlinker = "custom"\n')
+    identity = prepare(tmp_path, monkeypatch)
+    monkeypatch.setenv("CARGO_HOME", str(home / ".cargo"))
+    with pytest.raises(ValueError, match="Unsupported Cargo configuration target.linker"):
+        identity("ios")
+
+
+def test_cargo_env_table_is_rejected_without_echoing_values(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    home = tmp_path / "cargo-home"
+    home.mkdir()
+    marker = "synthetic-token-do-not-echo-42"
+    (home / "config.toml").write_text(f'[env]\nSYNTHETIC_TOKEN = "{marker}"\n')
+    monkeypatch.setenv("CARGO_HOME", str(home))
+    with pytest.raises(ValueError) as error:
+        identity("ios")
+    assert "env" in str(error.value)
+    assert marker not in str(error.value)
 
 
 def test_cargo_home_credentials_are_not_hashed(tmp_path, monkeypatch):
@@ -209,22 +282,22 @@ def test_cargo_home_credentials_are_not_hashed(tmp_path, monkeypatch):
     assert identity("ios") == baseline
 
 
-def test_target_linker_input_changes_identity(tmp_path, monkeypatch):
-    identity = prepare(tmp_path, monkeypatch)
-    baseline = identity("ios")
-    monkeypatch.setenv("CARGO_TARGET_AARCH64_APPLE_IOS_LINKER", "/tmp/linker")
-    changed = identity("ios")
-    overrides = changed["toolchain"]["overrides"]
-    assert overrides["CARGO_TARGET_AARCH64_APPLE_IOS_LINKER"] == "/tmp/linker"
-    assert native.location("ios", changed) != native.location("ios", baseline)
-
-
 def test_output_paths_do_not_change_identity(tmp_path, monkeypatch):
     identity = prepare(tmp_path, monkeypatch)
     baseline = identity("ios")
     monkeypatch.setenv("CARGO_TARGET_DIR", str(tmp_path / "cargo-output"))
     monkeypatch.setenv("BRANCH_BUILD_DIR", str(tmp_path / "build-output"))
     monkeypatch.setenv("BRANCH_NATIVE", str(tmp_path / "stale-cohort"))
+    assert identity("ios") == baseline
+
+
+def test_cargo_config_output_routing_is_not_semantic(tmp_path, monkeypatch):
+    identity = prepare(tmp_path, monkeypatch)
+    baseline = identity("ios")
+    home = tmp_path / "cargo-home"
+    home.mkdir()
+    (home / "config.toml").write_text('[build]\ntarget-dir = "somewhere-else"\n')
+    monkeypatch.setenv("CARGO_HOME", str(home))
     assert identity("ios") == baseline
 
 
@@ -247,3 +320,87 @@ def test_changed_profile_cannot_reuse_a_stale_cohort(tmp_path, monkeypatch):
     assert native.location("ios", changed) != stale
     with pytest.raises(ValueError, match="integrity"):
         native.verify(stale, changed)
+
+
+def android_sdk(tmp_path, monkeypatch):
+    ndk = "29.0.14206865"
+    host = native._ndk_prebuilt_tag()
+    bindir = tmp_path / f"ndk/{ndk}/toolchains/llvm/prebuilt/{host}/bin"
+    bindir.mkdir(parents=True)
+    (tmp_path / f"ndk/{ndk}/source.properties").write_text("Pkg.Revision = 29.0.14206865\n")
+    monkeypatch.setattr(native, "sdk", lambda: tmp_path)
+    return bindir
+
+
+def recording_runner(record):
+    def runner(*args, env=None, **kwargs):
+        record.append((args, dict(env or {})))
+        if env is None:
+            return
+        target_dir = Path(env["CARGO_TARGET_DIR"])
+        if args[:2] == ("cargo", "build"):
+            if "--target" in args:
+                target = args[args.index("--target") + 1]
+                library = target_dir / target / "release" / "libbranch_runtime_ffi.so"
+            else:
+                library = target_dir / "release" / "libbranch_runtime_ffi.so"
+            library.parent.mkdir(parents=True, exist_ok=True)
+            library.write_bytes(b"native fixture")
+        elif args[:2] == ("cargo", "run"):
+            out = Path(args[args.index("--out-dir") + 1])
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "BranchRuntimeFFI.kt").write_text("// generated\n")
+            (out / "BranchRuntimeFFI.h").write_text("// generated\n")
+            (out / "BranchRuntimeFFI.modulemap").write_text("// generated\n")
+        elif args[:1] == ("xcodebuild",):
+            output = Path(args[args.index("-output") + 1])
+            output.mkdir(parents=True, exist_ok=True)
+            (output / "Info.plist").write_text("fixture\n")
+
+    return runner
+
+
+def test_build_rejects_selectors_before_any_subprocess(tmp_path, monkeypatch):
+    prepare(tmp_path, monkeypatch)
+    record = []
+    monkeypatch.setattr(native, "run", recording_runner(record))
+    monkeypatch.setenv("RUSTC", "/bin/true")
+    with pytest.raises(ValueError, match="Unsupported build-affecting override"):
+        native.build("ios")
+    assert record == []
+
+
+def test_actual_android_subprocesses_receive_linkers_and_flags(tmp_path, monkeypatch):
+    prepare(tmp_path, monkeypatch)
+    bindir = android_sdk(tmp_path, monkeypatch)
+    record = []
+    monkeypatch.setattr(native, "run", recording_runner(record))
+    monkeypatch.setenv("RUSTFLAGS", "-Copt-level=1")
+    native.build("android")
+    assert record
+    linkers = {
+        "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER": str(bindir / "aarch64-linux-android28-clang"),
+        "CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER": str(bindir / "x86_64-linux-android28-clang"),
+    }
+    for args, env in record:
+        if args[:2] in {("cargo", "build"), ("cargo", "run")}:
+            assert env["RUSTFLAGS"] == "-Copt-level=1"
+        if args[:2] == ("cargo", "build"):
+            for key, value in linkers.items():
+                assert env[key] == value
+
+
+def test_actual_ios_subprocesses_share_the_resolved_policy(tmp_path, monkeypatch):
+    prepare(tmp_path, monkeypatch)
+    record = []
+    monkeypatch.setattr(native, "run", recording_runner(record))
+    monkeypatch.setenv("CARGO_TARGET_AARCH64_APPLE_IOS_RUSTFLAGS", "-Cdebug-assertions=on")
+    native.build("ios")
+    assert record
+    saw_target = False
+    for args, env in record:
+        if args[:2] == ("cargo", "build") and "--target" in args:
+            saw_target = True
+            assert env["CARGO_TARGET_AARCH64_APPLE_IOS_RUSTFLAGS"] == "-Cdebug-assertions=on"
+        assert "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER" not in env
+    assert saw_target

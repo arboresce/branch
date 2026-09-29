@@ -1,10 +1,10 @@
 # BDS-00: Contracts and baseline
 
-Status: second-review correction complete, independent acceptance pending, 2026-09-29.
+Status: complete; independently accepted at revision `1f79aef`, 2026-09-29.
 Owner: Branch. Approved target: [UI Foundation v1](../../spec/ui-foundation.md).
 Requirements: BUI-12, BUI-01, BUI-02.
 Prerequisites: None; first execution unit.
-Next action: await independent acceptance; retain the corrected BDS-01/02 checkpoints.
+Next action: retain this baseline and continue the remaining BDS-01/02 corrections.
 
 ## Scope
 
@@ -88,7 +88,16 @@ Never mark a device-only result passed from a simulator run.
 
 Checkpoint evidence: submitted commits `0d06e44`, `2e1d29e`, `c0ebef4`; BDS-00.02 first corrected at `78bdb0c` and second-corrected in the 2026-09-29 batch.
 Current implementation slice: none.
-Open failures/limits: R2-06 corrected in the second-review batch. Independent acceptance remains pending; this record is not an acceptance claim.
+Open failures/limits: none within BDS-00. Later implementation and qualification remain separate.
+
+## Third-review acceptance (2026-09-29)
+
+The changes at `bbe798f` are accepted. Independent `make check-tools` passed all
+116 Python tests, formatting and the 92-component/ten-service/65-checkpoint/
+twelve-requirement inventory at `1f79aef`. Source review confirms table/section
+co-location, nonempty definitions, recognized verification lanes and local
+link/anchor rejection fixtures. All three BDS-00 checkpoints remain complete;
+this acceptance does not close BDS-01 or BDS-02.
 
 ## Second-review amendment (2026-09-29)
 
