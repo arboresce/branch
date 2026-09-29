@@ -453,17 +453,59 @@ def android_device():
         yield selected
     finally:
         if process:
-            subprocess.run(
-                [str(native.sdk() / "platform-tools/adb"), "-s", selected, "emu", "kill"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=False,
-            )
-            try:
-                process.wait(timeout=20)
-            except subprocess.TimeoutExpired:
-                process.terminate()
-                process.wait(timeout=10)
+            _release_owned_emulator(process, selected)
+
+
+def _bound_shutdown_request(serial: str) -> None:
+    """Ask ADB to shut down the owned emulator within a bounded request."""
+    try:
+        subprocess.run(
+            [str(native.sdk() / "platform-tools/adb"), "-s", serial, "emu", "kill"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=10,
+        )
+    except subprocess.TimeoutExpired:
+        pass
+
+
+def _stop_owned_emulator(
+    process: subprocess.Popen,
+    serial: str,
+    grace: float = 20,
+    terminate_wait: float = 10,
+    kill_wait: float = 10,
+) -> None:
+    """Bound graceful, terminate and kill/reap waits for one owned process."""
+    _bound_shutdown_request(serial)
+    try:
+        process.wait(timeout=grace)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    process.terminate()
+    try:
+        process.wait(timeout=terminate_wait)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    process.kill()
+    try:
+        process.wait(timeout=kill_wait)
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("Owned emulator process did not exit after kill") from error
+
+
+def _release_owned_emulator(process: subprocess.Popen, serial: str) -> None:
+    """Report cleanup failure separately when a primary failure is in flight."""
+    pending = sys.exc_info()[0] is not None
+    try:
+        _stop_owned_emulator(process, serial)
+    except Exception as error:
+        if not pending:
+            raise
+        print(f"warning: owned emulator cleanup failed: {error}", file=sys.stderr)
 
 
 def test(platform: str, configuration: str = "debug") -> None:
